@@ -8,10 +8,10 @@ const {
 } = require('forta-agent');
 
 // local definitions
-const { aaveLendingPoolV2 } = require('../../shared.json');
+const { LendingPool : address } = require('../../contract-addresses.json');
 
-const { abi, address } = aaveLendingPoolV2;
-const { handleTransaction } = require('.');
+const { abi } = require('../../interfaces/ILendingPool.json');
+const { handleTransaction } = require('./anomalous-value.js');
 
 // create interface
 const iface = new ethers.utils.Interface(abi);
