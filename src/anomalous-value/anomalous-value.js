@@ -45,7 +45,7 @@ async function handleTransaction(txEvent) {
 
   const parsedLogs = filterAndParseLogs(txEvent.logs);
 
-  // loop over each eventLog, checking for anomolous value
+  // loop over each eventLog, checking for anomalous value
   parsedLogs.forEach((log) => {
     // rolling math requires bignumber.js style BigNumbers
     const amount = new BigNumber(log.args.amount.toHexString());
@@ -54,7 +54,7 @@ async function handleTransaction(txEvent) {
     if (!rollingEventData[log.args.reserve]) {
       rollingEventData[log.args.reserve] = new RollingMath(100);
     } else {
-      // if we have seen this before, check for anomolous value
+      // if we have seen this before, check for anomalous value
       const average = rollingEventData[log.args.reserve].getAverage();
       const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
 
@@ -70,6 +70,7 @@ async function handleTransaction(txEvent) {
   return findings;
 }
 
+// exports
 module.exports = {
   filterAndParseLogs,
   handleTransaction,

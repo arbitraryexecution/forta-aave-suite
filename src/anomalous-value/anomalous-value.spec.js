@@ -1,5 +1,6 @@
 const ethers = require('ethers');
 
+// imports from forta-agent
 const {
   TransactionEvent,
   FindingType,
@@ -9,7 +10,6 @@ const {
 
 // local definitions
 const { LendingPool : address } = require('../../contract-addresses.json');
-
 const { abi } = require('../../interfaces/ILendingPool.json');
 const { handleTransaction } = require('./anomalous-value.js');
 
@@ -20,8 +20,8 @@ const iface = new ethers.utils.Interface(abi);
 const tokenA = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const zeroAddress = ethers.constants.AddressZero;
 const zeroHash = ethers.constants.HashZero;
-// const eventNames = ['Borrow', 'Deposit', 'Repay', 'Withdraw'];
 
+// default empty log structure
 const emptyLog = {
   address: zeroHash,
   logIndex: 0,
@@ -32,6 +32,7 @@ const emptyLog = {
   removed: false,
 };
 
+// function to encode default values
 function defaultType(type) {
   switch (type) {
     case 'address':
@@ -114,41 +115,51 @@ function createTxEvent(receipt, addresses) {
 }
 
 // tests
-describe('aave anomolous value agent', () => {
+describe('aave anomalous value agent', () => {
   describe('handleTransaction', () => {
     it('should not further parse non-aave logs', async () => {
+      // create log with address other than aave
       const log = createLog(iface.getEvent('Borrow'),
         { reserve: tokenA, amount: 30000 },
         { address: zeroAddress });
 
+      // build txEvent
       const receipt = createReceipt([log], zeroAddress);
       const txEvent = createTxEvent(receipt, zeroAddress);
 
+      // run agent with txEvent
       const findings = await handleTransaction(txEvent);
 
+      // assertions
       expect(findings).toStrictEqual([]);
     });
 
-    it('should create finding when given a anomolous event', async () => {
+    it('should create finding when given a anomalous event', async () => {
+      // create log that should be analized
       const largeAmount = 5500000;
       const log = createLog(iface.getEvent('Borrow'),
         { reserve: tokenA, amount: 10000 },
         { address });
 
+      // build txEvent
       const receipt = createReceipt([log, log, log], zeroAddress);
       const txEvent = createTxEvent(receipt, zeroAddress);
 
+      // run agent with txEvent, should update averages
       const finding = await handleTransaction(txEvent);
       expect(finding === []);
 
-      const anomolousLog = createLog(iface.getEvent('Borrow'),
+      // create anomalous log
+      const anomalousLog = createLog(iface.getEvent('Borrow'),
         { reserve: tokenA, amount: largeAmount },
         { address });
 
-      const anomolousReceipt = createReceipt([anomolousLog], zeroAddress);
-      const anomolousTxEvent = createTxEvent(anomolousReceipt, zeroAddress);
+      // create anomalous txEvent
+      const anomalousReceipt = createReceipt([anomalousLog], zeroAddress);
+      const anomalousTxEvent = createTxEvent(anomalousReceipt, zeroAddress);
 
-      const parsedLog = iface.parseLog(anomolousLog);
+      // create expected finding 
+      const parsedLog = iface.parseLog(anomalousLog);
       const expectedFinding = Finding.fromObject({
         name: 'High AAVE Borrow Amount',
         description: `Borrow: ${largeAmount}\nToken: ${tokenA}`,
@@ -158,8 +169,11 @@ describe('aave anomolous value agent', () => {
         metadata: JSON.stringify(parsedLog),
       });
 
-      const anomolousFinding = await handleTransaction(anomolousTxEvent);
-      expect(anomolousFinding === expectedFinding);
+      // run test
+      const anomalousFinding = await handleTransaction(anomalousTxEvent);
+
+      // assertions
+      expect(anomalousFinding === expectedFinding);
     });
   });
 });
