@@ -9,9 +9,9 @@ const {
 } = require('forta-agent');
 
 // local definitions
-const { LendingPool : address } = require('../../contract-addresses.json');
+const { LendingPool: address } = require('../../contract-addresses.json');
 const { abi } = require('../../interfaces/ILendingPool.json');
-const { handleTransaction } = require('./anomalous-value.js');
+const { handleTransaction } = require('./anomalous-value');
 
 // create interface
 const iface = new ethers.utils.Interface(abi);
@@ -52,7 +52,7 @@ function defaultType(type) {
   }
 }
 
-// creates log with sparce inputs
+// creates log with sparse inputs
 function createLog(eventAbi, inputArgs, logArgs) {
   const topics = [];
   const dataTypes = [];
@@ -158,7 +158,7 @@ describe('aave anomalous value agent', () => {
       const anomalousReceipt = createReceipt([anomalousLog], zeroAddress);
       const anomalousTxEvent = createTxEvent(anomalousReceipt, zeroAddress);
 
-      // create expected finding 
+      // create expected finding
       const parsedLog = iface.parseLog(anomalousLog);
       const expectedFinding = Finding.fromObject({
         name: 'High AAVE Borrow Amount',
@@ -166,6 +166,7 @@ describe('aave anomalous value agent', () => {
         alertId: 'AAVE-1',
         severity: FindingSeverity.Medium,
         type: FindingType.Suspicious,
+        everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
         metadata: JSON.stringify(parsedLog),
       });
 

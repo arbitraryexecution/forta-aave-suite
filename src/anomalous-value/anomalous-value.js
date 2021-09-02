@@ -21,9 +21,10 @@ function createAlert(log) {
   return Finding.fromObject({
     name: `High AAVE ${log.name} Amount`,
     description: `${log.name}: ${log.args.amount.toString()}\nToken: ${log.args.reserve}`,
-    alertId: 'AAVE-1',
+    alertId: 'AAVE-HIGH-TX-AMOUNT',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
+    everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
     metadata: JSON.stringify(log),
   });
 }
