@@ -1,10 +1,13 @@
 const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
-const { Finding, FindingSeverity, FindingType, getJsonRpcUrl } = require('forta-agent');
+const {
+  Finding, FindingSeverity, FindingType, getJsonRpcUrl,
+} = require('forta-agent');
 const RollingMath = require('rolling-math');
 
 // load required shared types
 const contractAddresses = require('../../contract-addresses.json');
+
 const { LendingPool, ProtocolDataProvider: DataProvider } = contractAddresses;
 const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
@@ -37,7 +40,7 @@ const dataFields = [
   'totalStableDebt',
   'totalVariableDebt',
   'totalDebt',
-  'totalValueLocked' 
+  'totalValueLocked',
 ];
 
 // parses and returns data in a usable format
@@ -51,14 +54,16 @@ async function parseData(dataPromise, reserve) {
 
   // create object with data to return
   const parsedData = {};
-  dataFields.forEach((field) => parsedData[field] = data[field]);
+  dataFields.forEach((field) => {
+    parsedData[field] = data[field];
+  });
 
   // add our custom fields
   parsedData.reserve = reserve;
   parsedData.totalDebt = totalDebt;
   parsedData.totalValueLocked = totalValueLocked;
 
-  return parsedData
+  return parsedData;
 }
 
 async function handleBlock(blockEvent) {
@@ -72,32 +77,31 @@ async function handleBlock(blockEvent) {
 
   // create array containing a promise that returns the data for each reserve
   const reserveData = [];
-  for (reserve of reserves) {
+  reserves.forEach((reserve) => {
     // RPC call for per reserve data
     const dataPromise = dataProvider.getReserveData(reserve, { ...override });
     reserveData.push(
-      parseData(dataPromise, reserve)
+      parseData(dataPromise, reserve),
     );
-  }
-
+  });
 
   // resolve our requests
   const resolved = await Promise.all(reserveData);
 
   // process the data
-  resolved.forEach(function (data) {
-    const reserve = data.reserve;
+  resolved.forEach((data) => {
+    const { reserve } = data;
 
     // initialize the rolling math libraries if they don't exist
     if (!rollingLiquidityData[reserve]) {
-      rollingLiquidityData[reserve] = {}
-      dataFields.forEach((field) => (
-        rollingLiquidityData[reserve][field] = new RollingMath(1000)
-      ));
+      rollingLiquidityData[reserve] = {};
+      dataFields.forEach((field) => {
+        rollingLiquidityData[reserve][field] = new RollingMath(1000);
+      });
     }
 
     // loop over data
-    dataFields.forEach(function (field) {
+    dataFields.forEach((field) => {
       const observation = new BigNumber(data[field].toHexString());
       const pastData = rollingLiquidityData[reserve][field];
 
@@ -111,7 +115,9 @@ async function handleBlock(blockEvent) {
 
         // alert on differences larger than our limit
         if (delta.isGreaterThan(limit)) {
-          findings.push(createAlert({field, reserve, observation, average }));
+          findings.push(createAlert({
+            field, reserve, observation, average,
+          }));
         }
       }
 
@@ -119,7 +125,7 @@ async function handleBlock(blockEvent) {
       pastData.addElement(observation);
     });
   });
-  
+
   return findings;
 }
 
