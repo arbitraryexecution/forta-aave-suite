@@ -59,8 +59,12 @@ async function handleTransaction(txEvent) {
       const average = rollingEventData[log.args.reserve].getAverage();
       const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
 
-      // if instance is larger than 3 standard deviations larger, report
-      if (amount.isGreaterThan(average.plus(standardDeviation.times(3)))) {
+      // limit is 3 standard deviations
+      const limit = average.plus(standardDeviation.times(3));
+      const delta = amount.minus(average).absoluteValue();
+
+      // if instance is outside the standard deviation, report
+      if (delta.isGreaterThan(limit)) {
         findings.push(createAlert(log));
       }
     }
