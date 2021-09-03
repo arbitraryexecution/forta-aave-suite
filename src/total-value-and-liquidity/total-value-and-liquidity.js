@@ -12,6 +12,9 @@ const { LendingPool, ProtocolDataProvider: DataProvider } = contractAddresses;
 const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
 
+// get config settings
+const Config = require('../../agent-config.json')['total-value-and-liquidity'];
+
 // set up RPC provider
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
 
@@ -66,70 +69,73 @@ async function parseData(dataPromise, reserve) {
   return parsedData;
 }
 
-async function handleBlock(blockEvent) {
-  const findings = [];
+function provideHandleBlock(rollingMath, config) {
+  return async function handleBlock(blockEvent) {
+    const findings = [];
 
-  // override block number so we get data from the block in question
-  const override = { blockTag: blockEvent.blockNumber };
+    // override block number so we get data from the block in question
+    const override = { blockTag: blockEvent.blockNumber };
 
-  // get reserves and the current liquidity from this block
-  const reserves = await lendingPool.getReservesList({ ...override });
+    // get reserves and the current liquidity from this block
+    const reserves = await lendingPool.getReservesList({ ...override });
 
-  // create array containing a promise that returns the data for each reserve
-  const reserveData = [];
-  reserves.forEach((reserve) => {
-    // RPC call for per reserve data
-    const dataPromise = dataProvider.getReserveData(reserve, { ...override });
-    reserveData.push(
-      parseData(dataPromise, reserve),
-    );
-  });
+    // create array containing a promise that returns the data for each reserve
+    const reserveData = [];
+    reserves.forEach((reserve) => {
+      // RPC call for per reserve data
+      const dataPromise = dataProvider.getReserveData(reserve, { ...override });
+      reserveData.push(
+        parseData(dataPromise, reserve),
+      );
+    });
 
-  // resolve our requests
-  const resolved = await Promise.all(reserveData);
+    // resolve our requests
+    const resolved = await Promise.all(reserveData);
 
-  // process the data
-  resolved.forEach((data) => {
-    const { reserve } = data;
+    // process the data
+    resolved.forEach((data) => {
+      const { reserve } = data;
 
-    // initialize the rolling math libraries if they don't exist
-    if (!rollingLiquidityData[reserve]) {
-      rollingLiquidityData[reserve] = {};
-      dataFields.forEach((field) => {
-        rollingLiquidityData[reserve][field] = new RollingMath(1000);
-      });
-    }
-
-    // loop over data
-    dataFields.forEach((field) => {
-      const observation = new BigNumber(data[field].toHexString());
-      const pastData = rollingLiquidityData[reserve][field];
-
-      // only process data for alerts if we have seen a significant number of blocks
-      if (pastData.getNumElements() > 0) {
-        const average = pastData.getAverage();
-        const standardDeviation = pastData.getStandardDeviation();
-
-        const limit = average.plus(standardDeviation.times(2));
-        const delta = observation.minus(average).absoluteValue();
-
-        // alert on differences larger than our limit
-        if (delta.isGreaterThan(limit)) {
-          findings.push(createAlert({
-            field, reserve, observation, average,
-          }));
-        }
+      // initialize the rolling math libraries if they don't exist
+      if (!rollingLiquidityData[reserve]) {
+        rollingLiquidityData[reserve] = {};
+        dataFields.forEach((field) => {
+          rollingLiquidityData[reserve][field] = new rollingMath(config.windowSize);
+        });
       }
 
-      // add observation to our data
-      pastData.addElement(observation);
-    });
-  });
+      // loop over data
+      dataFields.forEach((field) => {
+        const observation = new BigNumber(data[field].toHexString());
+        const pastData = rollingLiquidityData[reserve][field];
 
-  return findings;
+        // only process data for alerts if we have seen a significant number of blocks
+        if (pastData.getNumElements() > config.minElements) {
+          const average = pastData.getAverage();
+          const standardDeviation = pastData.getStandardDeviation();
+
+          const limit = average.plus(standardDeviation.times(config.numStds));
+          const delta = observation.minus(average).absoluteValue();
+
+          // alert on differences larger than our limit
+          if (delta.isGreaterThan(limit)) {
+            findings.push(createAlert({
+              field, reserve, observation, average,
+            }));
+          }
+        }
+
+        // add observation to our data
+        pastData.addElement(observation);
+      });
+    });
+
+    return findings;
+  }
 }
 
 // exports
 module.exports = {
-  handleBlock,
+  provideHandleBlock,
+  handleBlock: provideHandleBlock(RollingMath, Config),
 };

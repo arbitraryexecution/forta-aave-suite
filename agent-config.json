@@ -1,0 +1,7 @@
+{
+  "total-value-and-liquidity": {
+    "windowSize": 1000,
+    "numStds": 2,
+    "minElements": 40
+  }
+}
