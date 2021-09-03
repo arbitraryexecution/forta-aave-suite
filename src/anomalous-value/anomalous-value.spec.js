@@ -147,7 +147,7 @@ describe('aave anomalous value agent', () => {
 
       // run agent with txEvent, should update averages
       const finding = await handleTransaction(txEvent);
-      expect(finding === []);
+      expect(finding).toStrictEqual([]);
 
       // create anomalous log
       const anomalousLog = createLog(iface.getEvent('Borrow'),
@@ -163,7 +163,7 @@ describe('aave anomalous value agent', () => {
       const expectedFinding = Finding.fromObject({
         name: 'High AAVE Borrow Amount',
         description: `Borrow: ${largeAmount}\nToken: ${tokenA}`,
-        alertId: 'AAVE-1',
+        alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
         severity: FindingSeverity.Medium,
         type: FindingType.Suspicious,
         everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
@@ -174,7 +174,7 @@ describe('aave anomalous value agent', () => {
       const anomalousFinding = await handleTransaction(anomalousTxEvent);
 
       // assertions
-      expect(anomalousFinding === expectedFinding);
+      expect(anomalousFinding[0]).toStrictEqual(expectedFinding);
     });
   });
 });
