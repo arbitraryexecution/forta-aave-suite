@@ -19,8 +19,8 @@ const Config = require('../../agent-config.json')['total-value-and-liquidity'];
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract
-const lendingPool = new ethers.Contract(LendingPool, LendingPoolAbi, provider);
-const dataProvider = new ethers.Contract(DataProvider, DataAbi, provider);
+const LendingPool = new ethers.Contract(LendingPool, LendingPoolAbi, provider);
+const DataProvider = new ethers.Contract(DataProvider, DataAbi, provider);
 
 // create rolling math object structure
 const rollingLiquidityData = {};
@@ -69,7 +69,7 @@ async function parseData(dataPromise, reserve) {
   return parsedData;
 }
 
-function provideHandleBlock(rollingMath, config) {
+function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
   return async function handleBlock(blockEvent) {
     const findings = [];
 
@@ -137,5 +137,5 @@ function provideHandleBlock(rollingMath, config) {
 // exports
 module.exports = {
   provideHandleBlock,
-  handleBlock: provideHandleBlock(RollingMath, Config),
+  handleBlock: provideHandleBlock(RollingMath, Config, LendingPool, DataProvider),
 };
