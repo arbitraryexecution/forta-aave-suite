@@ -17,7 +17,7 @@ function createTxEvent(transaction) {
   return new TransactionEvent(null, null, transaction, null, [], null, null);
 }
 
-// tests 
+// tests
 describe('watch admin addresses', () => {
   describe('handleTransaction', () => {
     it('returns empty findings if no address match is found', async () => {

@@ -1,20 +1,17 @@
 const { Finding, FindingSeverity, FindingType } = require('forta-agent');
-const path = require('path');
 
 // load config file
 const addressList = require('./address-watch.json');
 
 // get list of addresses to watch
-const addresses = (Object.keys(addressList)).map(function (a) {
-  return a.toLowerCase();
-});
+const addresses = (Object.keys(addressList)).map((a) => a.toLowerCase());
 
 async function handleTransaction(txEvent) {
   const findings = [];
   const { from, hash } = txEvent.transaction;
 
   // check if an address in the watchlist was the initiator of the transaction
-  addresses.forEach(function(address) {
+  addresses.forEach((address) => {
     if (from === address) {
       findings.push(
         Finding.fromObject({
