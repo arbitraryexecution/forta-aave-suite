@@ -1,5 +1,5 @@
 {
-  "name": "forta-ave-suite",
+  "name": "forta-aave-suite",
   "version": "0.0.1",
   "description": "Collection of scan agent handlers that monitor the Aave protocol",
   "scripts": {
@@ -16,7 +16,7 @@
   "dependencies": {
     "bignumber.js": "^9.0.1",
     "ethers": "^5.4.6",
-    "forta-agent": "^0.0.11",
+    "forta-agent": "*",
     "rolling-math": "git+ssh://git@github.com/arbitraryexecution/rolling-math.git"
   },
   "devDependencies": {
