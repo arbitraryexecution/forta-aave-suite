@@ -1,5 +1,8 @@
 {
   "anomalous-value" : {
     "standardDevation" : 3
+  },
+  "reserve-watch" : {
+    "standardDeviation" : 3 
   }
 }

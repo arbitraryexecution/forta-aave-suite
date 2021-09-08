@@ -1,18 +1,24 @@
-const { Finding, FindingSeverity, FindingType, getJsonRpcUrl } = require("forta-agent");
-const BigNumber = require("bignumber.js");
-const ethers = require("ethers");
-const RollingMath = require("rolling-math");
+const {
+  Finding, FindingSeverity, FindingType, getJsonRpcUrl,
+} = require('forta-agent');
+const BigNumber = require('bignumber.js');
+const ethers = require('ethers');
+const RollingMath = require('rolling-math');
 
 const contractAddresses = require('../../contract-addresses.json');
+const { 'reserve-watch': Config } = require('../../agent-config.json');
+
+const { standardDeviation: limit } = Config;
 
 const { LendingPoolAddressProvider, ProtocolDataProvider: DataProvider } = contractAddresses;
-const { abi:DataAbi } = require("../../interfaces/AaveProtocolDataProvider.json");
-const { abi:AddressProviderAbi }  = require("../../interfaces/ILendingPoolAddressesProvider.json");
-const { abi:PriceOracleAbi } = require("../../interfaces/IPriceOracle.json");
+const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
+const { abi: AddressProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
+const { abi: PriceOracleAbi } = require('../../interfaces/IPriceOracle.json');
 
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
 const protocolDataProvider = new ethers.Contract(DataProvider, DataAbi, provider);
-const poolAddressProvider = new ethers.Contract(LendingPoolAddressProvider, AddressProviderAbi, provider);
+const poolAddressProvider = new ethers.Contract(LendingPoolAddressProvider,
+  AddressProviderAbi, provider);
 
 let rollingReservePrices = {};
 
@@ -29,39 +35,38 @@ function createAlert(asset, price) {
   });
 }
 
-function provideHandleBlock(rollingMath) {
-
+function provideHandleBlock(RollingMathLib) {
   // Clear out the RollingMath object for ease of testing
   rollingReservePrices = {};
 
   return async function handleBlock(blockEvent) {
     const findings = [];
 
+    // override block number so we get data from the block in question
+    const override = { blockTag: blockEvent.blockNumber };
+
     // Get the reserve assets
-    const reserveAssets = await protocolDataProvider.getAllReservesTokens();
- 
+    const reserveAssets = await protocolDataProvider.getAllReservesTokens({ ...override });
+
     // Get address of the price oracle
-    const oracleAddress = await poolAddressProvider.getPriceOracle();
+    const oracleAddress = await poolAddressProvider.getPriceOracle({ ...override });
     const priceOracle = new ethers.Contract(oracleAddress, PriceOracleAbi, provider);
-    
+
     await Promise.all(reserveAssets.map(async (asset) => {
-      const priceWei = await priceOracle.getAssetPrice(asset.tokenAddress);
-    
+      const priceWei = await priceOracle.getAssetPrice(asset.tokenAddress, { ...override });
+
       // convert the amount to a bignum
       const amount = new BigNumber(priceWei.toString());
-    
+
       // If we haven't seen this reserve before, initialize it
       if (!rollingReservePrices[asset.symbol]) {
-        rollingReservePrices[asset.symbol] = new rollingMath(10);
-      }
-
-      // Otherwise, check to see if the current price is off
-      else {
+        rollingReservePrices[asset.symbol] = new RollingMathLib(10);
+      } else {
         const average = rollingReservePrices[asset.symbol].getAverage();
         const stdDeviation = rollingReservePrices[asset.symbol].getStandardDeviation();
-        
-        // if greater than 2 standard deviations, report
-        if (amount.isGreaterThan(average.plus(stdDeviation.times(2)))) {
+
+        // if greater than configured standard deviations, report
+        if (amount.isGreaterThan(average.plus(stdDeviation.times(limit)))) {
           findings.push(createAlert(asset, priceWei));
         }
       }
@@ -79,7 +84,7 @@ async function teardownProvider() {
 }
 
 module.exports = {
-  provideHandleBlock, 
+  provideHandleBlock,
   handleBlock: provideHandleBlock(RollingMath),
   teardownProvider,
 };

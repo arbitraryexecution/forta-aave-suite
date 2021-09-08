@@ -1,22 +1,11 @@
-const {
-  TransactionEvent,
-  FindingType,
-  FindingSeverity,
-  Finding,
-  getJsonRpcUrl
-} = require("forta-agent");
+const BigNumber = require('bignumber.js');
+const RollingMath = require('rolling-math');
+const { provideHandleBlock, teardownProvider } = require('./reserve-watch');
 
-const { provideHandleBlock, teardownProvider } = require("./reserve-watch");
-const BigNumber = require("bignumber.js");
-const ethers = require("ethers");
-const RollingMath = require("rolling-math");
-
-jest.mock("rolling-math");
+jest.mock('rolling-math');
 
 const baseRollingMath = {
-  getWindowSize: jest.fn(function() {
-    return this.arg0;
-  }),
+  getWindowSize: jest.fn(function () { return this.arg0; }),
   getElements: jest.fn(() => 0),
   getSum: jest.fn(() => 0),
   getAverage: jest.fn(() => 0),
@@ -27,7 +16,7 @@ const baseRollingMath = {
 // creates a mock class implementation with constructor
 // returns references to mocked funcs
 function mockLibrary(baseMockLibrary, overrides) {
-  const mockImplementation = jest.fn(function () {
+  const mockImplementation = jest.fn((...args) => {
     // funcs will contain the mocked classes function definitions
     // first add the base unimplemented classes
     //
@@ -39,8 +28,9 @@ function mockLibrary(baseMockLibrary, overrides) {
 
     // update constructor aruments, they can be referenced inside of the function
     // implementations with the name `arg0`, `arg1`, ..., `argN`
-    Object.entries(arguments).forEach((entry) => {
-      funcs[ 'arg'.concat(entry[0]) ] = entry[1];
+    Object.entries(args).forEach((entry) => {
+      const idx = 1; // RollingMath only takes a single argument
+      funcs['arg'.concat(entry[0])] = entry[idx];
     });
 
     // override function definitions and constructor arguments
@@ -55,28 +45,30 @@ function mockLibrary(baseMockLibrary, overrides) {
     mockFunctions: {
       ...baseMockLibrary,
       ...overrides,
-    }
-  }
+    },
+  };
 }
 
-describe("Aave reserve price agent", () => {
+describe('Aave reserve price agent', () => {
   let handleBlock;
 
-  afterAll(() => { 
+  afterAll(() => {
     teardownProvider();
   });
 
-  describe("Reserve Monitoring", () => {
-    it("returns empty if reserve price swing is below threshold", async () => {
+  describe('Reserve Monitoring', () => {
+    it('returns empty if reserve price swing is below threshold', async () => {
       // Mock RollingMath to return a large average
-      const myOverrides = { getAverage: () => new BigNumber('1e300'),
-                            getStandardDeviation: () => new BigNumber(0)};
-      
+      const myOverrides = {
+        getAverage: () => new BigNumber('1e300'),
+        getStandardDeviation: () => new BigNumber(0),
+      };
+
       const res = mockLibrary(baseRollingMath, myOverrides);
       RollingMath.mockImplementation(res.mockImplementation);
-      
+
       handleBlock = provideHandleBlock(RollingMath);
-      
+
       // Get the first round of prices and initialize RollingMath objects
       await handleBlock({});
 
@@ -86,15 +78,17 @@ describe("Aave reserve price agent", () => {
       expect(findings).toStrictEqual([]);
     });
 
-    it("returns findings if reserve price swing is above threshold", async () => {
-      const myOverrides = { getAverage: () => new BigNumber(0),
-                            getStandardDeviation: () => new BigNumber(0)};
-      
+    it('returns findings if reserve price swing is above threshold', async () => {
+      const myOverrides = {
+        getAverage: () => new BigNumber(0),
+        getStandardDeviation: () => new BigNumber(0),
+      };
+
       const res = mockLibrary(baseRollingMath, myOverrides);
       RollingMath.mockImplementation(res.mockImplementation);
-      
+
       handleBlock = provideHandleBlock(RollingMath);
-      
+
       await handleBlock({});
 
       // mocked RollingMath will trigger findings on the next block
