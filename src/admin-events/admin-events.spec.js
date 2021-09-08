@@ -55,11 +55,10 @@ describe('admin event monitoring', () => {
   describe('handleTransaction', () => {
     it('returns empty findings if contract address does not match', async () => {
       // build txEvent
-      const dummyAddress = ethers.constants.AddressZero;
       const txEvent = createTxEvent({
         hash: ethers.constants.HashZero,
         logs: logsNoMatchAddress,
-        addresses: { dummyAddress : true },
+        addresses: { [ethers.constants.AddressZero]: true },
       });
 
       // run agent

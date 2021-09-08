@@ -5,32 +5,34 @@ const contractAddresses = require('../../contract-addresses.json');
 const adminEvents = require('./admin-events.json');
 
 // get contract names for mapping to events
-const contractNames = Object.keys(contractAddresses);
+let contractNames = Object.keys(contractAddresses);
+
+// returns the list of events for a given contract
+function getEvents(contractName) {
+  const events = adminEvents[contractName];
+  if (events === undefined) {
+    return []; // no events for this contract
+  }
+  return events;
+}
+
+// prune contract names that don't have any associated events
+contractNames = contractNames.filter((name) => (getEvents(name).length !== 0));
 
 async function handleTransaction(txEvent) {
   const findings = [];
   const { hash } = txEvent.transaction;
 
-  let contractName = '';
-  let contractAddress = '';
-  let events = '';
-  let eventName = '';
-  let eventLog = null;
-
-  // iterate over each contract
-  for (let i = 0; i < contractNames.length; i++) {
+  // iterate over each contract name to get the address and events
+  contractNames.forEach((contractName) => {
     // for each contract name, lookup the address
-    contractName = contractNames[i];
-    contractAddress = contractAddresses[contractName].toLowerCase();
+    const contractAddress = contractAddresses[contractName].toLowerCase();
+    const events = getEvents(contractName);
 
-    // for each contract address, iterate over its events
-    events = adminEvents[contractName];
-    if (events === undefined) continue; // no events for this contract
-
-    for (let j = 0; j < events.length; j++) {
-      eventName = events[j];
+    // for each contract address, check for event matches
+    events.forEach((eventName) => {
       // console.log("DEBUG: contract=" + contractAddress + ", event=" + eventName);
-      eventLog = txEvent.filterEvent(eventName, contractAddress);
+      const eventLog = txEvent.filterEvent(eventName, contractAddress);
       if (eventLog.length !== 0) {
         findings.push(
           Finding.fromObject({
@@ -49,8 +51,8 @@ async function handleTransaction(txEvent) {
           }),
         );
       }
-    }
-  }
+    });
+  });
 
   return findings;
 }
