@@ -23,7 +23,7 @@ describe('watch admin addresses', () => {
     it('returns empty findings if no address match is found', async () => {
       // build txEvent
       const txEvent = createTxEvent({
-        from: '0xab5801a7d398351b8be11c439e05c5b3259aec9b',
+        from: ethers.constants.AddressZero,
         hash: ethers.constants.HashZero,
       });
 
