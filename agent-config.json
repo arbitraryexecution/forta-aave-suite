@@ -1,5 +1,5 @@
 {
-  "anomalous-value" : {
+  "check-reserve-update-frequency" : {
     "standardDevation" : 3
   }
 }
