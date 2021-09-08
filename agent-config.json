@@ -3,6 +3,7 @@
     "standardDevation" : 3
   },
   "reserve-watch" : {
+    "windowSize": 100,
     "standardDeviation" : 3 
   }
 }

@@ -8,8 +8,7 @@ const RollingMath = require('rolling-math');
 const contractAddresses = require('../../contract-addresses.json');
 const { 'reserve-watch': Config } = require('../../agent-config.json');
 
-const { standardDeviation: limit } = Config;
-
+const { windowSize, standardDeviation: limit } = Config;
 const { LendingPoolAddressProvider, ProtocolDataProvider: DataProvider } = contractAddresses;
 const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: AddressProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
@@ -60,7 +59,7 @@ function provideHandleBlock(RollingMathLib) {
 
       // If we haven't seen this reserve before, initialize it
       if (!rollingReservePrices[asset.symbol]) {
-        rollingReservePrices[asset.symbol] = new RollingMathLib(10);
+        rollingReservePrices[asset.symbol] = new RollingMathLib(windowSize);
       } else {
         const average = rollingReservePrices[asset.symbol].getAverage();
         const stdDeviation = rollingReservePrices[asset.symbol].getStandardDeviation();
