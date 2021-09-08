@@ -1,0 +1,46 @@
+{
+  "LendingPoolAddressesProvider" : [
+    "MarketIdSet(string)",
+    "LendingPoolUpdated(address)",
+    "ConfigurationAdminUpdated(address)",
+    "EmergencyAdminUpdated(address)",
+    "LendingPoolConfiguratorUpdated(address)",
+    "LendingPoolCollateralManagerUpdated(address)",
+    "PriceOracleUpdated(address)",
+    "LendingRateOracleUpdated(address)",
+    "ProxyCreated(bytes32,address)",
+    "AddressSet(bytes32,address,bool)",
+    "OwnershipTransferred(address,address)"
+    ],
+  "LendingPoolAddressesProviderRegistry" : [
+    "AddressProviderRegistered(address)",
+    "AddressProviderUnregistered(address)",
+    "OwnershipTransferred(address,address)"
+    ],
+  "LendingPool" : [
+    "Upgraded(address)"
+    ],
+  "LendingPoolConfigurator" : [
+    "Upgraded(address)"
+    ],
+  "LendingRateOracle" : [
+    "OwnershipTransferred(address,address)",
+    "MarketBorrowRateSet(address,uint256)"
+    ],
+  "PriceOracle" : [
+   "OwnershipTransferred(address,address)",
+   "WethSet(address)",
+   "AssetSourceUpdated(address,address)",
+   "FallbackOracleUpdated(address)"
+    ],
+  "WETHGateway" : [
+    "OwnershipTransferred(address,address)"
+    ],
+  "AaveCollector" : [
+    "AdminChanged(address,address)"
+    ],
+  "IncentivesController" : [
+    "Upgraded(address)"
+    ]
+}
+

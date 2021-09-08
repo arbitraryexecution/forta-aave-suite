@@ -13,4 +13,13 @@ module.exports = {
   },
   rules: {
   },
+  overrides: [
+    {
+      files: '*',
+      rules: {
+        'no-plusplus': 'off',
+        'no-continue': 'off',
+      },
+    },
+  ],
 };
