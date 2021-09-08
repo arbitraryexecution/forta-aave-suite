@@ -11,6 +11,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 12,
   },
+	ignorePatterns: ['.eslintrc.js'],
   rules: {
     'no-console': ["error", { "allow": ["error"] }],
   },
