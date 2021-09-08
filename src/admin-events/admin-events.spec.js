@@ -45,20 +45,21 @@ describe('admin event monitoring', () => {
   // logs data for test case:  no address match + no topic match
   const logsNoMatchAddress = [
     {
-      address: '0x1',
+      address: ethers.constants.AddressZero,
       topics: [
-        '0x0',
+        ethers.constants.HashZero,
       ],
     },
   ];
 
   describe('handleTransaction', () => {
-    it('returns empty findings if event matches but not contract address', async () => {
+    it('returns empty findings if contract address does not match', async () => {
       // build txEvent
+      const dummyAddress = ethers.constants.AddressZero;
       const txEvent = createTxEvent({
         hash: ethers.constants.HashZero,
         logs: logsNoMatchAddress,
-        addresses: { '0x1': true },
+        addresses: { dummyAddress : true },
       });
 
       // run agent

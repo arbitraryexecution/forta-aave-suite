@@ -10,22 +10,19 @@
     "LendingRateOracleUpdated(address)",
     "ProxyCreated(bytes32,address)",
     "AddressSet(bytes32,address,bool)",
-    "OwnershipTransferred(address,address)"
+    "OwnershipTransferred(address,address)",
+    "Upgraded(address)"
     ],
   "LendingPoolAddressesProviderRegistry" : [
     "AddressProviderRegistered(address)",
     "AddressProviderUnregistered(address)",
     "OwnershipTransferred(address,address)"
     ],
-  "LendingPool" : [
-    "Upgraded(address)"
-    ],
   "LendingPoolConfigurator" : [
     "Upgraded(address)"
     ],
   "LendingRateOracle" : [
-    "OwnershipTransferred(address,address)",
-    "MarketBorrowRateSet(address,uint256)"
+    "OwnershipTransferred(address,address)"
     ],
   "PriceOracle" : [
    "OwnershipTransferred(address,address)",
@@ -35,12 +32,6 @@
     ],
   "WETHGateway" : [
     "OwnershipTransferred(address,address)"
-    ],
-  "AaveCollector" : [
-    "AdminChanged(address,address)"
-    ],
-  "IncentivesController" : [
-    "Upgraded(address)"
     ]
 }
 
