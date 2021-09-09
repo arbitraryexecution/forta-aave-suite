@@ -8,7 +8,7 @@ const RollingMath = require('rolling-math');
 // load required shared types
 const contractAddresses = require('../../contract-addresses.json');
 
-const { LendingPool, ProtocolDataProvider: DataProvider } = contractAddresses;
+const { LendingPool: LendingPoolAddr, ProtocolDataProvider: DataProviderAddr } = contractAddresses;
 const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
 
@@ -19,11 +19,11 @@ const Config = require('../../agent-config.json')['total-value-and-liquidity'];
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract
-const LendingPool = new ethers.Contract(LendingPool, LendingPoolAbi, provider);
-const DataProvider = new ethers.Contract(DataProvider, DataAbi, provider);
+const LendingPool = new ethers.Contract(LendingPoolAddr, LendingPoolAbi, provider);
+const DataProvider = new ethers.Contract(DataProviderAddr, DataAbi, provider);
 
 // create rolling math object structure
-const rollingLiquidityData = {};
+let rollingLiquidityData = {};
 
 // helper function to create alerts
 function createAlert(data) {
@@ -70,6 +70,12 @@ async function parseData(dataPromise, reserve) {
 }
 
 function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
+  /*
+  Object.keys(rollingLiquidityData).forEach((key) => {
+    delete rollingLiquidityData[key];
+  });*/
+  rollingLiquidityData = {};
+
   return async function handleBlock(blockEvent) {
     const findings = [];
 
@@ -114,7 +120,7 @@ function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
           const average = pastData.getAverage();
           const standardDeviation = pastData.getStandardDeviation();
 
-          const limit = average.plus(standardDeviation.times(config.numStds));
+          const limit = standardDeviation.times(config.numStds);
           const delta = observation.minus(average).absoluteValue();
 
           // alert on differences larger than our limit
