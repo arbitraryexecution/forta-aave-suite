@@ -1,8 +1,8 @@
-const { Finding, FindingSeverity, FindingType, } = require('forta-agent');
+const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 const { aaveEverestId } = require('../../agent-config.json');
 
-// data fields the agent is interested in 
-const dataFields = [ 
+// data fields the agent is interested in
+const dataFields = [
   'availableLiquidity',
   'totalStableDebt',
   'totalVariableDebt',

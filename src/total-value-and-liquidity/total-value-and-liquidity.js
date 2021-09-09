@@ -1,12 +1,10 @@
 const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
-const {
-  Finding, FindingSeverity, FindingType, getJsonRpcUrl,
-} = require('forta-agent');
-const RollingMath = require('rolling-math');
+const { getJsonRpcUrl } = require('forta-agent');
+const RollingMathLib = require('rolling-math');
 
 // get createAlert and dataFields
-const { createAlert, dataFields } = require('./common.js');
+const { createAlert, dataFields } = require('./common');
 
 // load required shared types
 const contractAddresses = require('../../contract-addresses.json');
@@ -16,9 +14,8 @@ const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json
 const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
 
 // get config settings
-const { 
+const {
   totalValueAndLiquidity: Config,
-  aaveEverestId,
 } = require('../../agent-config.json');
 
 // set up RPC provider
@@ -54,7 +51,7 @@ async function parseData(dataPromise, reserve) {
   return parsedData;
 }
 
-function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
+function provideHandleBlock(RollingMath, config, lendingPool, dataProvider) {
   rollingLiquidityData = {};
 
   return async function handleBlock(blockEvent) {
@@ -87,7 +84,7 @@ function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
       if (!rollingLiquidityData[reserve]) {
         rollingLiquidityData[reserve] = {};
         dataFields.forEach((field) => {
-          rollingLiquidityData[reserve][field] = new rollingMath(config.windowSize);
+          rollingLiquidityData[reserve][field] = new RollingMath(config.windowSize);
         });
       }
 
@@ -128,6 +125,6 @@ async function teardownProvider() {
 // exports
 module.exports = {
   provideHandleBlock,
-  handleBlock: provideHandleBlock(RollingMath, Config, LendingPool, DataProvider),
+  handleBlock: provideHandleBlock(RollingMathLib, Config, LendingPool, DataProvider),
   teardownProvider,
 };

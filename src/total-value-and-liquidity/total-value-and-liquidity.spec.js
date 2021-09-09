@@ -2,34 +2,29 @@
 const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
 
-// forta agent imports
-const {
-  Finding, FindingSeverity, FindingType,
-} = require('forta-agent');
-
 // shared imports
-const { createAlert, dataFields } = require('./common.js');
-
+const RollingMath = require('rolling-math');
+const { createAlert, dataFields } = require('./common');
 
 // handler to agent
 const {
   provideHandleBlock,
   teardownProvider,
-} = require('./total-value-and-liquidity.js');
+} = require('./total-value-and-liquidity');
 
 // mockable libraries
-const RollingMath = require('rolling-math');
 jest.mock('rolling-math');
 
 // get config settings
-const { 
+const {
   totalValueAndLiquidity: Config,
 } = require('../../agent-config.json');
 
 // creates a mock class implementation with constructor
 // returns references to mocked funcs
 function mockLibrary(baseMockLibrary) {
-  const mockImplementation = jest.fn(function () {
+  // mock instance function
+  function mockInstance(...args) {
     // funcs will contain the mocked classes function definitions
     // first add the base unimplemented classes
     const funcs = {
@@ -38,12 +33,15 @@ function mockLibrary(baseMockLibrary) {
 
     // update constructor aruments, they can be referenced inside of the function
     // implementations with the name `arg0`, `arg1`, ..., `argN`
-    Object.entries(arguments).forEach((entry) => {
-      funcs['arg'.concat(entry[0])] = entry[1];
+    Object.entries(args).forEach((entry) => {
+      const [key, value] = entry;
+      funcs['arg'.concat(key)] = value;
     });
 
     return funcs;
-  });
+  }
+
+  const mockImplementation = jest.fn(mockInstance);
 
   // return the mock implementation and handles to all mock functions
   return {
@@ -74,7 +72,7 @@ describe('liquidity and total value locked agent tests', () => {
     // defaults must be reinitialized each test otherwise updating mock function implementations
     // will actually be updating our default array and affect other tests
     const baseRollingMath = {
-      getWindowSize: jest.fn(function () {
+      getWindowSize: jest.fn(function getWindowSize() {
         return this.arg0;
       }),
       getNumElements: jest.fn(() => 0),
@@ -112,7 +110,9 @@ describe('liquidity and total value locked agent tests', () => {
 
     mockConfig = { ...Config };
 
-    handleTransaction = provideHandleBlock(RollingMath, mockConfig, mockLendingPool, mockDataProvider);
+    handleTransaction = provideHandleBlock(
+      RollingMath, mockConfig, mockLendingPool, mockDataProvider,
+    );
   });
 
   describe('configurations work for', () => {
@@ -313,7 +313,7 @@ describe('liquidity and total value locked agent tests', () => {
     it('recieves an event that is outside the std limit and has adequate previous data', async () => {
       // intialize our data fields
       await handleTransaction({ blockNumber: 0 });
-      
+
       // default standard devation is 0 and average is 0, if we return anything it should alert
       mockData.totalStableDebt = ethers.BigNumber.from(9001);
 
@@ -322,17 +322,15 @@ describe('liquidity and total value locked agent tests', () => {
         jest.fn(() => mockConfig.minElements + 1),
       );
 
-      const alerts = [ 'totalStableDebt', 'totalDebt', 'totalValueLocked' ].map((field) => {
-        return createAlert({
-          field: field,
-          reserve: '0xFAKEADDRESS',
-          observation: '9001',
-          average: '0',
-        });
-      });
+      const alerts = ['totalStableDebt', 'totalDebt', 'totalValueLocked'].map((field) => createAlert({
+        field,
+        reserve: '0xFAKEADDRESS',
+        observation: '9001',
+        average: '0',
+      }));
 
       // expect findings to be equal
-      expect(alerts).toStrictEqual(await handleTransaction({blockNumber: 0}));
+      expect(alerts).toStrictEqual(await handleTransaction({ blockNumber: 0 }));
     });
   });
 });
