@@ -19,6 +19,7 @@
     "OwnershipTransferred(address,address)"
     ],
   "LendingPoolConfigurator" : [
+    "Upgraded(address)"
     ],
   "LendingRateOracle" : [
     "OwnershipTransferred(address,address)"
