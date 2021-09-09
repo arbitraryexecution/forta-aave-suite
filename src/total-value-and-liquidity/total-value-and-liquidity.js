@@ -5,6 +5,9 @@ const {
 } = require('forta-agent');
 const RollingMath = require('rolling-math');
 
+// get createAlert and dataFields
+const { createAlert, dataFields } = require('./common.js');
+
 // load required shared types
 const contractAddresses = require('../../contract-addresses.json');
 
@@ -13,7 +16,10 @@ const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json
 const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
 
 // get config settings
-const Config = require('../../agent-config.json')['total-value-and-liquidity'];
+const { 
+  totalValueAndLiquidity: Config,
+  aaveEverestId,
+} = require('../../agent-config.json');
 
 // set up RPC provider
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
@@ -24,27 +30,6 @@ const DataProvider = new ethers.Contract(DataProviderAddr, DataAbi, provider);
 
 // create rolling math object structure
 let rollingLiquidityData = {};
-
-// helper function to create alerts
-function createAlert(data) {
-  return Finding.fromObject({
-    name: `Anomolous AAVE ${data.field}`,
-    description: `Reserve: ${data.reserve}`,
-    alertId: `AAVE-ANOMOLOUS-${data.field.toUpperCase()}`,
-    severity: FindingSeverity.High,
-    type: FindingType.Suspicious,
-    metadata: JSON.stringify(data),
-  });
-}
-
-// data fields we are interested in
-const dataFields = [
-  'availableLiquidity',
-  'totalStableDebt',
-  'totalVariableDebt',
-  'totalDebt',
-  'totalValueLocked',
-];
 
 // parses and returns data in a usable format
 async function parseData(dataPromise, reserve) {
@@ -70,10 +55,6 @@ async function parseData(dataPromise, reserve) {
 }
 
 function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
-  /*
-  Object.keys(rollingLiquidityData).forEach((key) => {
-    delete rollingLiquidityData[key];
-  });*/
   rollingLiquidityData = {};
 
   return async function handleBlock(blockEvent) {
@@ -137,11 +118,16 @@ function provideHandleBlock(rollingMath, config, lendingPool, dataProvider) {
     });
 
     return findings;
-  }
+  };
+}
+
+async function teardownProvider() {
+  await provider.destroy();
 }
 
 // exports
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(RollingMath, Config, LendingPool, DataProvider),
+  teardownProvider,
 };
