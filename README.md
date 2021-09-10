@@ -8,6 +8,7 @@ the following handlers:
 - address-watch
 - admin-events
 - anomalous-value
+- reserve-watch
 - total-value-and-liquidity
 
 Additional handlers are currently under development.
@@ -17,6 +18,12 @@ Additional handlers are currently under development.
 - Ethereum
 
 ## Alerts
+
+- AE-AAVE-RESERVE-PRICE
+  - Fired when an AAVE reserve price changes more than `numStds` standard deviations
+  - Severity is always set to "medium"
+  - Type is always set to "suspicious"
+  - Metadata field contains symbol and price
 
 - AE-AAVE-ADDRESS-WATCH
   - Fired when any address from a pre-defined watchlist is involved in a transaction
@@ -45,4 +52,3 @@ Additional handlers are currently under development.
 ## Test Data
 
 To run all the tests for this agent, use the following command: `npm run test`
-

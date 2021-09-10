@@ -7,5 +7,10 @@
   "anomalous-value" : {
     "standardDevation" : 3
   },
+  "reserveWatch" : {
+    "windowSize": 100,
+    "numStds" : 3,
+    "minElements": 40
+  },
   "aaveEverestId": "0x55d07cab60a86966a01680e2242c4af4080a5566"
 }
