@@ -14,4 +14,13 @@ module.exports = {
   rules: {
     'no-console': ["error", { "allow": ["error"] }],
   },
+  overrides: [
+    {
+      files: '*',
+      rules: {
+        'no-plusplus': 'off',
+        'no-continue': 'off',
+      },
+    },
+  ],
 };
