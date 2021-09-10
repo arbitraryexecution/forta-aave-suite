@@ -2,8 +2,9 @@
   "anomalous-value" : {
     "standardDevation" : 3
   },
-  "reserve-watch" : {
+  "reserve_watch" : {
     "windowSize": 100,
-    "standardDeviation" : 3 
+    "numStds" : 3,
+    "minElements": 40
   }
 }

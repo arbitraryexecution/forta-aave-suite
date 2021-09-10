@@ -6,84 +6,93 @@ const ethers = require('ethers');
 const RollingMath = require('rolling-math');
 
 const contractAddresses = require('../../contract-addresses.json');
-const { 'reserve-watch': Config } = require('../../agent-config.json');
+const { reserve_watch: config } = require('../../agent-config.json');
 
-const { windowSize, standardDeviation: limit } = Config;
-const { LendingPoolAddressProvider, ProtocolDataProvider: DataProvider } = contractAddresses;
-const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: AddressProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
-const { abi: PriceOracleAbi } = require('../../interfaces/IPriceOracle.json');
+const { windowSize, numStds } = config;
+const {
+  ProtocolDataProvider: dataProvider,
+  PriceOracle: priceOracleAddress,
+} = contractAddresses;
+const { abi: dataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
+const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
 
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
-const protocolDataProvider = new ethers.Contract(DataProvider, DataAbi, provider);
-const poolAddressProvider = new ethers.Contract(LendingPoolAddressProvider,
-  AddressProviderAbi, provider);
+const ProtocolDataProvider = new ethers.Contract(dataProvider, dataAbi, provider);
+const PriceOracle = new ethers.Contract(priceOracleAddress, priceOracleAbi, provider);
 
 let rollingReservePrices = {};
 
 // helper function to create alerts
 function createAlert(asset, price) {
+  const { symbol } = asset;
   return Finding.fromObject({
-    name: `High AAVE ${asset.symbol} Reserve Price Change`,
-    description: `${asset.symbol} Price: ${ethers.utils.formatEther(price)} ether `,
+    name: `High AAVE ${symbol} Reserve Price Change`,
+    description: `${symbol} Price: ${ethers.utils.formatEther(price)} ether `,
     alertId: 'AE-AAVE-RESERVE-PRICE',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
     everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
-    metadata: {},
+    metadata: {
+      symbol,
+      price: ethers.utils.formatEther(price),
+    },
   });
 }
 
-function provideHandleBlock(RollingMathLib) {
-  // Clear out the RollingMath object for ease of testing
+function provideHandleBlock(RollingMathLib, protocolDataProvider, priceOracle) {
+  // clear out the RollingMath object for ease of testing
   rollingReservePrices = {};
-
   return async function handleBlock(blockEvent) {
     const findings = [];
 
     // override block number so we get data from the block in question
     const override = { blockTag: blockEvent.blockNumber };
 
-    // Get the reserve assets
+    // get the reserve assets
     const reserveAssets = await protocolDataProvider.getAllReservesTokens({ ...override });
 
-    // Get address of the price oracle
-    const oracleAddress = await poolAddressProvider.getPriceOracle({ ...override });
-    const priceOracle = new ethers.Contract(oracleAddress, PriceOracleAbi, provider);
-
-    await Promise.all(reserveAssets.map(async (asset) => {
+    async function generateFindings(asset) {
       const priceWei = await priceOracle.getAssetPrice(asset.tokenAddress, { ...override });
-
       // convert the amount to a bignum
       const amount = new BigNumber(priceWei.toString());
-
-      // If we haven't seen this reserve before, initialize it
+      // if we haven't seen this reserve before, initialize it
       if (!rollingReservePrices[asset.symbol]) {
         rollingReservePrices[asset.symbol] = new RollingMathLib(windowSize);
       } else {
         const average = rollingReservePrices[asset.symbol].getAverage();
-        const stdDeviation = rollingReservePrices[asset.symbol].getStandardDeviation();
+        const standardDeviation = rollingReservePrices[asset.symbol].getStandardDeviation();
 
+        const limit = standardDeviation.times(numStds);
+        const delta = amount.minus(average).absoluteValue();
         // if greater than configured standard deviations, report
-        if (amount.isGreaterThan(average.plus(stdDeviation.times(limit)))) {
+        if (delta.isGreaterThan(limit)) {
           findings.push(createAlert(asset, priceWei));
         }
       }
 
       // update the data
       rollingReservePrices[asset.symbol].addElement(amount);
-    }));
+    }
+
+    // generate findings for each asset and catch exceptions so Promise.all does not bail early
+    await Promise.all(reserveAssets.map(
+      (reserve) => generateFindings(reserve).catch((e) => console.error(e)),
+    ));
 
     return findings;
   };
 }
 
+/**
+ * Closes the Ethers provider websocket
+ */
 async function teardownProvider() {
   await provider.destroy();
 }
 
 module.exports = {
   provideHandleBlock,
-  handleBlock: provideHandleBlock(RollingMath),
+  handleBlock: provideHandleBlock(RollingMath, ProtocolDataProvider, PriceOracle),
   teardownProvider,
+  createAlert,
 };

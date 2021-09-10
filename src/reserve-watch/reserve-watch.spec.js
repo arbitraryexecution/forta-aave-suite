@@ -1,15 +1,17 @@
+const { createBlockEvent } = require('forta-agent');
 const BigNumber = require('bignumber.js');
 const RollingMath = require('rolling-math');
-const { provideHandleBlock, teardownProvider } = require('./reserve-watch');
+const { provideHandleBlock, teardownProvider, createAlert } = require('./reserve-watch');
 
 jest.mock('rolling-math');
 
 const baseRollingMath = {
-  getWindowSize: jest.fn(function () { return this.arg0; }),
+
+  getWindowSize: jest.fn(function fn() { return this.arg0; }),
   getElements: jest.fn(() => 0),
   getSum: jest.fn(() => 0),
   getAverage: jest.fn(() => 0),
-  getStandardDeviation: jest.fn(() => 0),
+  getStandardDeviation: jest.fn(() => new BigNumber(0)),
   addElement: jest.fn(() => 0),
 };
 
@@ -19,17 +21,15 @@ function mockLibrary(baseMockLibrary, overrides) {
   const mockImplementation = jest.fn((...args) => {
     // funcs will contain the mocked classes function definitions
     // first add the base unimplemented classes
-    //
-    // TODO: this is dangerous because it won't fail if someone doesn't mock their
-    // function properly
+
     const funcs = {
       ...baseMockLibrary,
     };
 
-    // update constructor aruments, they can be referenced inside of the function
+    // update constructor arguments, they can be referenced inside of the function
     // implementations with the name `arg0`, `arg1`, ..., `argN`
     Object.entries(args).forEach((entry) => {
-      const idx = 1; // RollingMath only takes a single argument
+      const idx = 1;
       funcs['arg'.concat(entry[0])] = entry[idx];
     });
 
@@ -51,49 +51,73 @@ function mockLibrary(baseMockLibrary, overrides) {
 
 describe('Aave reserve price agent', () => {
   let handleBlock;
+  let mockData;
+  let mockProtocolDataProvider;
+  let mockPriceOracle;
 
-  afterAll(() => {
+  beforeEach(() => {
+    mockData = [{ symbol: 'TEST', tokenAddress: '0xDEAD' }];
+
+    mockProtocolDataProvider = {
+      getAllReservesTokens: jest.fn(() => Promise.resolve(
+        mockData,
+      )),
+    };
+
+    mockPriceOracle = {
+      getAssetPrice: jest.fn(() => Promise.resolve(
+        '0x1',
+      )),
+    };
+  });
+
+  const blockEvent = createBlockEvent({
+    blockHash: '0xa',
+    blockNumber: 1,
+    block: {},
+  });
+
+  afterEach(() => {
     teardownProvider();
   });
 
   describe('Reserve Monitoring', () => {
     it('returns empty if reserve price swing is below threshold', async () => {
-      // Mock RollingMath to return a large average
-      const myOverrides = {
-        getAverage: () => new BigNumber('1e300'),
-        getStandardDeviation: () => new BigNumber(0),
+      // mock RollingMath to return a large average
+      const overrides = {
+        getAverage: () => jest.fn(() => new BigNumber('1e300')),
+        getStandardDeviation: jest.fn(() => new BigNumber('1e300')),
       };
 
-      const res = mockLibrary(baseRollingMath, myOverrides);
+      const res = mockLibrary(baseRollingMath, overrides);
       RollingMath.mockImplementation(res.mockImplementation);
 
-      handleBlock = provideHandleBlock(RollingMath);
-
-      // Get the first round of prices and initialize RollingMath objects
-      await handleBlock({});
+      handleBlock = provideHandleBlock(RollingMath, mockProtocolDataProvider, mockPriceOracle);
+      // get the first round of prices and initialize RollingMath objects
+      await handleBlock(blockEvent);
 
       // mocked RollingMath will trigger findings on the next block
-      const findings = await handleBlock({});
+      const findings = await handleBlock(blockEvent);
 
       expect(findings).toStrictEqual([]);
     });
 
     it('returns findings if reserve price swing is above threshold', async () => {
-      const myOverrides = {
-        getAverage: () => new BigNumber(0),
-        getStandardDeviation: () => new BigNumber(0),
+      const overrides = {
+        getAverage: jest.fn(() => new BigNumber(0)),
       };
 
-      const res = mockLibrary(baseRollingMath, myOverrides);
+      const res = mockLibrary(baseRollingMath, overrides);
       RollingMath.mockImplementation(res.mockImplementation);
 
-      handleBlock = provideHandleBlock(RollingMath);
+      handleBlock = provideHandleBlock(RollingMath, mockProtocolDataProvider, mockPriceOracle);
 
-      await handleBlock({});
-
+      await handleBlock(blockEvent);
+      const asset = mockData[0];
+      const test = [createAlert(asset, 1)];
       // mocked RollingMath will trigger findings on the next block
-      const findings = await handleBlock({});
-      expect(findings).not.toStrictEqual([]);
+      const findings = await handleBlock(blockEvent);
+      expect(findings).toStrictEqual(test);
     });
   });
 });
