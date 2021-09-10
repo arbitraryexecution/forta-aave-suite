@@ -12,6 +12,9 @@ WORKDIR /app
 # if using build stage
 # COPY --from=builder /app/dist ./
 COPY ./src ./src
+COPY agent-config.json ./
+COPY contract-addresses.json ./
+COPY ./interfaces ./interfaces
 COPY package*.json ./
 COPY forta.config.json ./
 RUN npm ci --production
