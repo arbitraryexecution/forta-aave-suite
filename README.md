@@ -8,6 +8,7 @@ the following handlers:
 - address-watch
 - admin-events
 - anomalous-value
+- total-value-and-liquidity
 
 Additional handlers are currently under development.
 
@@ -34,6 +35,12 @@ Additional handlers are currently under development.
   - Severity is always set to "medium"
   - Type is always set to "suspicious" 
   - Metadata field contains the event log data
+
+- AE-AAVE-TVL
+  - Fired when available liquidity, total stable debt, total variable debt, total debt or total value locked drastically changes
+  - Severity is always set to "high"
+  - Type is always set to "suspicious"
+  - Metadata field contains additional alert information (field, reserve, observation, average)
 
 ## Test Data
 
