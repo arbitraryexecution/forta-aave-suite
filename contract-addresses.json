@@ -1,4 +1,15 @@
 {
-  "LendingPool" : "0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9",
-  "ProtocolDataProvider" : "0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d"
+  "LendingPoolAddressesProvider" : "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
+  "LendingPoolAddressesProviderRegistry" : "0x52D306e36E3B6B02c153d0266ff0f85d18BCD413",
+  "LendingPool" : "0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9",
+  "LendingPoolCollateralManager" : "0xbd4765210d4167CE2A5b87280D9E8Ee316D5EC7C",
+  "LendingPoolConfigurator" : "0x311Bb771e4F8952E6Da169b425E7e92d6Ac45756",
+  "LendingRateOracle" : "0x8A32f49FFbA88aba6EFF96F45D8BD1D4b3f35c7D",
+  "PriceOracle" : "0xA50ba011c48153De246E5192C8f9258A2ba79Ca9",
+  "PoolAdmin" : "0xB9062896ec3A615a4e4444DF183F0531a77218AE",
+  "EmergencyAdmin" : "0xB9062896ec3A615a4e4444DF183F0531a77218AE",
+  "ProtocolDataProvider" : "0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d",
+  "WETHGateway" : "0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04",
+  "AaveCollector" : "0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c",
+  "IncentivesController" : "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5"
 }

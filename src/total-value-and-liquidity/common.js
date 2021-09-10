@@ -15,7 +15,7 @@ function createAlert(data) {
   return Finding.fromObject({
     name: `Anomalous AAVE ${data.field}`,
     description: `Reserve: ${data.reserve}`,
-    alertId: `AE-AAVE-TVL-${data.field.toUpperCase()}`,
+    alertId: `AE-AAVE-TVL`,
     severity: FindingSeverity.High,
     type: FindingType.Suspicious,
     everestId: aaveEverestId,
