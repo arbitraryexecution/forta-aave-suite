@@ -6,7 +6,7 @@ const ethers = require('ethers');
 const RollingMath = require('rolling-math');
 
 const contractAddresses = require('../../contract-addresses.json');
-const { reserve_watch: config } = require('../../agent-config.json');
+const { reserveWatch: config } = require('../../agent-config.json');
 
 const { windowSize, numStds } = config;
 const {
