@@ -9,28 +9,28 @@ const { createAlert, dataFields } = require('./common');
 // load required shared types
 const contractAddresses = require('../../contract-addresses.json');
 
-const { LendingPool: LendingPoolAddr, ProtocolDataProvider: DataProviderAddr } = contractAddresses;
+const { LendingPool: lendingPoolAddr, ProtocolDataProvider: dataProviderAddr } = contractAddresses;
 const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
 
 // get config settings
 const {
-  totalValueAndLiquidity: Config,
+  totalValueAndLiquidity: rawConfig,
 } = require('../../agent-config.json');
 
 // set up RPC provider
 const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract
-const LendingPool = new ethers.Contract(LendingPoolAddr, LendingPoolAbi, provider);
-const DataProvider = new ethers.Contract(DataProviderAddr, DataAbi, provider);
+const lendingPoolContract = new ethers.Contract(lendingPoolAddr, LendingPoolAbi, provider);
+const dataProviderContract = new ethers.Contract(dataProviderAddr, DataAbi, provider);
 
 // create rolling math object structure
 let rollingLiquidityData = {};
 
 // parses and returns data in a usable format
 async function parseData(dataPromise, reserve) {
-  // resolve our rpc call
+  // settle our rpc call
   const data = await dataPromise;
 
   // calculate totals
@@ -69,12 +69,14 @@ function provideHandleBlock(RollingMath, config, lendingPool, dataProvider) {
       // RPC call for per reserve data
       const dataPromise = dataProvider.getReserveData(reserve, { ...override });
       reserveData.push(
-        parseData(dataPromise, reserve),
+        parseData(dataPromise, reserve).catch(() => undefined),
       );
     });
 
     // resolve our requests
-    const resolved = await Promise.all(reserveData);
+    const resolved = (await Promise.all(reserveData)).filter(
+      (result) => result !== undefined,
+    );
 
     // process the data
     resolved.forEach((data) => {
@@ -125,6 +127,8 @@ async function teardownProvider() {
 // exports
 module.exports = {
   provideHandleBlock,
-  handleBlock: provideHandleBlock(RollingMathLib, Config, LendingPool, DataProvider),
+  handleBlock: provideHandleBlock(
+    RollingMathLib, rawConfig, lendingPoolContract, dataProviderContract,
+  ),
   teardownProvider,
 };

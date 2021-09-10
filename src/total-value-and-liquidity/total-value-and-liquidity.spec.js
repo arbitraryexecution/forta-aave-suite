@@ -89,7 +89,7 @@ describe('liquidity and total value locked agent tests', () => {
       )),
     };
 
-    // mockeData contains the observations of the fields we look for in the handler
+    // mockData contains the observations of the fields we look for in the handler
     mockData = {};
     dataFields.forEach((field) => {
       mockData[field] = ethers.BigNumber.from(0);
@@ -118,7 +118,7 @@ describe('liquidity and total value locked agent tests', () => {
   describe('configurations work for', () => {
     it('window size', async () => {
       // set window size to a unique and non default number
-      mockConfig.windowSize = 389012;
+      mockConfig.windowSize = 389003;
 
       // run a block through
       await handleTransaction({ blockNumber: 0 });
@@ -134,7 +134,7 @@ describe('liquidity and total value locked agent tests', () => {
       await handleTransaction({ blockNumber: 0 });
 
       // set standard devation limit to a unique and non default number
-      mockConfig.numStds = 40;
+      mockConfig.numStds = 42;
 
       // make our math module return more than minimum required elements
       mockRollingMathFuncs.getNumElements.mockImplementation(
@@ -150,14 +150,14 @@ describe('liquidity and total value locked agent tests', () => {
       );
 
       // ensure observations below standard devation we do not alert
-      mockData.totalStableDebt = ethers.BigNumber.from(40 * 1 + 10);
+      mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10);
 
       // since we are equal to but not passing the limit we should not get back
       // any findings
       expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
 
       // make observations larger than our standard devation limit
-      mockData.totalStableDebt = ethers.BigNumber.from(40 * 1 + 10 + 1);
+      mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10 + 1);
 
       // since we are outside of the limit, expect a finding
       expect(await handleTransaction({ blockNumber: 0 })).not.toStrictEqual([]);
@@ -167,12 +167,12 @@ describe('liquidity and total value locked agent tests', () => {
       // run a block to initialize our data
       await handleTransaction({ blockNumber: 0 });
 
-      // set up our observations to be outside of standard devaition range
+      // set up our observations to be outside of standard deviation range
       // since default average and standard devation returned is 0, any number will suffice
       mockData.totalStableDebt = ethers.BigNumber.from(100);
 
       // set number of required elements to an arbitrary value
-      mockConfig.minElements = 1882;
+      mockConfig.minElements = 1879;
 
       // since default getNumElements returns 0, we should not expect a finding
       expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
@@ -222,6 +222,7 @@ describe('liquidity and total value locked agent tests', () => {
       mockConfig.numStds = 1;
 
       // set finding to be outside of our standard deviation range
+      // standard deviation * limit + anything to get outside the limit
       mockData.totalStableDebt = ethers.BigNumber.from(1 * 1 + 1);
 
       // set the number of elements to be insufficient

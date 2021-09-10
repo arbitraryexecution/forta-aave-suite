@@ -13,9 +13,9 @@ const dataFields = [
 // helper function to create alerts
 function createAlert(data) {
   return Finding.fromObject({
-    name: `Anomolous AAVE ${data.field}`,
+    name: `Anomalous AAVE ${data.field}`,
     description: `Reserve: ${data.reserve}`,
-    alertId: `AAVE-ANOMOLOUS-${data.field.toUpperCase()}`,
+    alertId: `AE-AAVE-TVL-${data.field.toUpperCase()}`,
     severity: FindingSeverity.High,
     type: FindingType.Suspicious,
     everestId: aaveEverestId,
