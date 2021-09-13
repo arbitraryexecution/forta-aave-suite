@@ -16,7 +16,7 @@ const {
 const { abi: dataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
 
-const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
+const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
 const ProtocolDataProvider = new ethers.Contract(dataProvider, dataAbi, provider);
 const PriceOracle = new ethers.Contract(priceOracleAddress, priceOracleAbi, provider);
 

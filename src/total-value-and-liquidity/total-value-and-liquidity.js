@@ -19,7 +19,7 @@ const {
 } = require('../../agent-config.json');
 
 // set up RPC provider
-const provider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
+const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract
 const lendingPoolContract = new ethers.Contract(lendingPoolAddr, LendingPoolAbi, provider);

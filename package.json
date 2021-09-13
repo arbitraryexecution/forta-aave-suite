@@ -1,6 +1,6 @@
 {
   "name": "forta-aave-suite",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Collection of scan agent handlers that monitor the Aave protocol",
   "scripts": {
     "start": "npm run start:dev",
