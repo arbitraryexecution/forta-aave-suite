@@ -1,12 +1,11 @@
 // required libraries
 const BigNumber = require('bignumber.js');
+const { createBlockEvent } = require('forta-agent');
 const {
-  Finding,
-  FindingSeverity,
-  FindingType,
-  createBlockEvent,
-} = require('forta-agent');
-const { provideHandleBlock, teardownProvider } = require('./check-reserve-update-frequency');
+  provideHandleBlock,
+  teardownProvider,
+  createAlert,
+} = require('./check-reserve-update-frequency');
 
 describe('AAVE reserve price oracle agent', () => {
   let handleBlock;
@@ -78,21 +77,7 @@ describe('AAVE reserve price oracle agent', () => {
       // create expected finding
       const token = promise[0][0];
       const priceSourceAddress = promise[0][1];
-      const expectedFinding = Finding.fromObject({
-        name: `Stale AAVE Price Oracle Data for ${token.symbol}`,
-        description:
-        `Token ${token.symbol} Price Oracle Age: ${oracleAgeTooOld.toString()} seconds`,
-        alertId: 'AE-AAVE-PRICE-ORACLE-STALE',
-        severity: FindingSeverity.Medium,
-        type: FindingType.Suspicious,
-        everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
-        metadata: {
-          symbol: token.symbol,
-          tokenAddress: token.tokenAddress,
-          oracleAge: oracleAgeTooOld,
-          priceSourceAddress,
-        },
-      });
+      const expectedFinding = createAlert(token, oracleAgeTooOld, priceSourceAddress);
 
       // we expect to trigger an alert based on the oracle being one second too old (24 hr + 1 sec)
       expect(await handleBlock(mockedBlockEvent)).toStrictEqual([expectedFinding]);

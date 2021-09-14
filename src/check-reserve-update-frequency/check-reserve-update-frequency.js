@@ -14,17 +14,20 @@ const { abi: aaveOracleAbi } = require('../../interfaces/AaveOracle.json');
 const { abi: chainlinkAggregatorAbi } = require('../../interfaces/IChainlinkAggregator.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
 
+// time threshold over which we trigger alerts (24 hours = 86400 seconds)
+// this value comes from the Chainlink web interface for price feeds (mouseover Trigger parameters)
+//  'A new trusted answer is written when the off-chain price moves more than the deviation
+//   threshold or 86400 seconds have passed since the last answer was written on-chain.'
+const {
+  oracleAgeThresholdSeconds: ORACLE_AGE_THRESHOLD_SECONDS,
+  aaveEverestId: AAVE_EVEREST_ID,
+} = require('../../agent-config.json');
+
 // set up the an ethers provider
 // use ethers.providers.getDefaultProvider() in lieu of ethers.providers.WebSocketProvider()
 // websockets are not supported in production
 // eslint-disable-next-line new-cap
 const jsonRpcProvider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
-
-// time threshold over which we trigger alerts (24 hours = 86400 seconds)
-// this value comes from the Chainlink web interface for price feeds (mouseover Trigger parameters)
-//  'A new trusted answer is written when the off-chain price moves more than the deviation
-//   threshold or 86400 seconds have passed since the last answer was written on-chain.'
-const ORACLE_AGE_THRESHOLD_SECONDS = 86400;
 
 // there are several reserve tokens in AAVE that do not use Chainlink price oracles
 // we will filter these out before we attempt to determine the age of the oracle data
@@ -45,7 +48,7 @@ function createAlert(reserveToken, oracleAge, priceSourceAddress) {
     alertId: 'AE-AAVE-PRICE-ORACLE-STALE',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
-    everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+    everestId: AAVE_EVEREST_ID,
     metadata: {
       symbol: reserveToken.symbol,
       tokenAddress: reserveToken.tokenAddress,
