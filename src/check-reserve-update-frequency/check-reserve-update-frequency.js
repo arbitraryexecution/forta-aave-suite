@@ -171,4 +171,5 @@ module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(initializeTokensContracts()),
   teardownProvider,
+  createAlert,
 };
