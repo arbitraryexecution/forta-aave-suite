@@ -19,9 +19,11 @@ const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILend
 //  'A new trusted answer is written when the off-chain price moves more than the deviation
 //   threshold or 86400 seconds have passed since the last answer was written on-chain.'
 const {
-  oracleAgeThresholdSeconds: ORACLE_AGE_THRESHOLD_SECONDS,
+  checkReserveUpdateFrequency,
   aaveEverestId: AAVE_EVEREST_ID,
 } = require('../../agent-config.json');
+
+const ORACLE_AGE_THRESHOLD_SECONDS = checkReserveUpdateFrequency.oracleAgeThresholdSeconds;
 
 // set up the an ethers provider
 // use ethers.providers.getDefaultProvider() in lieu of ethers.providers.WebSocketProvider()

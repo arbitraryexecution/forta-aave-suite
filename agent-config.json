@@ -12,7 +12,7 @@
     "numStds" : 3,
     "minElements": 40
   },
-	"check-reserve-update-frequency" : {
+	"checkReserveUpdateFrequency" : {
 		"oracleAgeThresholdSeconds": 86400
 	},
   "aaveEverestId": "0x55d07cab60a86966a01680e2242c4af4080a5566"
