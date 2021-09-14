@@ -10,7 +10,7 @@ const {
   ProtocolDataProvider: protocolDataProviderAddress,
 } = require('../../contract-addresses.json');
 const { abi: protocolDataProviderAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
+const { abi: aaveOracleAbi } = require('../../interfaces/AaveOracle.json');
 const { abi: chainlinkAggregatorAbi } = require('../../interfaces/IChainlinkAggregator.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
 
@@ -77,7 +77,7 @@ async function initializeTokensContracts() {
   const priceOracleAddress = await lendingPoolAddressProviderContract.getPriceOracle();
   const priceOracleContractInstance = new ethers.Contract(
     priceOracleAddress,
-    priceOracleAbi,
+    aaveOracleAbi,
     jsonRpcProvider,
   );
 
