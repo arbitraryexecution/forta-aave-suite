@@ -19,6 +19,7 @@ const {
 } = require('../../agent-config.json');
 
 // set up RPC provider
+// eslint-disable-next-line new-cap
 const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract

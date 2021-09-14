@@ -15,7 +15,10 @@ const { abi: chainlinkAggregatorAbi } = require('../../interfaces/IChainlinkAggr
 const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
 
 // set up the an ethers provider
-const jsonRpcProvider = new ethers.providers.WebSocketProvider(getJsonRpcUrl());
+// use ethers.providers.getDefaultProvider() in lieu of ethers.providers.WebSocketProvider()
+// websockets are not supported in production
+// eslint-disable-next-line new-cap
+const jsonRpcProvider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
 
 // time threshold over which we trigger alerts (24 hours = 86400 seconds)
 // this value comes from the Chainlink web interface for price feeds (mouseover Trigger parameters)

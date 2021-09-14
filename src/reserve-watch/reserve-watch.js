@@ -16,6 +16,7 @@ const {
 const { abi: dataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
 
+// eslint-disable-next-line new-cap
 const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
 const ProtocolDataProvider = new ethers.Contract(dataProvider, dataAbi, provider);
 const PriceOracle = new ethers.Contract(priceOracleAddress, priceOracleAbi, provider);
