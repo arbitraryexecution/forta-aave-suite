@@ -19,7 +19,7 @@ const {
 } = require('../../agent-config.json');
 
 // set up RPC provider
-const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
+const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract
 const lendingPoolContract = new ethers.Contract(lendingPoolAddr, LendingPoolAbi, provider);
@@ -120,15 +120,10 @@ function provideHandleBlock(RollingMath, config, lendingPool, dataProvider) {
   };
 }
 
-async function teardownProvider() {
-  await provider.destroy();
-}
-
 // exports
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(
     RollingMathLib, rawConfig, lendingPoolContract, dataProviderContract,
   ),
-  teardownProvider,
 };

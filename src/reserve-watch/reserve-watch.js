@@ -16,7 +16,7 @@ const {
 const { abi: dataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
 
-const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
+const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 const ProtocolDataProvider = new ethers.Contract(dataProvider, dataAbi, provider);
 const PriceOracle = new ethers.Contract(priceOracleAddress, priceOracleAbi, provider);
 
@@ -83,16 +83,8 @@ function provideHandleBlock(RollingMathLib, protocolDataProvider, priceOracle) {
   };
 }
 
-/**
- * Closes the Ethers provider websocket
- */
-async function teardownProvider() {
-  await provider.destroy();
-}
-
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(RollingMath, ProtocolDataProvider, PriceOracle),
-  teardownProvider,
   createAlert,
 };
