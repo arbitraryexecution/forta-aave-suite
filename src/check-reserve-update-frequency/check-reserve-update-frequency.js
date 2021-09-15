@@ -14,22 +14,22 @@ const { abi: aaveOracleAbi } = require('../../interfaces/AaveOracle.json');
 const { abi: chainlinkAggregatorAbi } = require('../../interfaces/IChainlinkAggregator.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
 
-// time threshold over which we trigger alerts (24 hours = 86400 seconds)
-// this value comes from the Chainlink web interface for price feeds (mouseover Trigger parameters)
-//  'A new trusted answer is written when the off-chain price moves more than the deviation
-//   threshold or 86400 seconds have passed since the last answer was written on-chain.'
 const {
   checkReserveUpdateFrequency,
   aaveEverestId: AAVE_EVEREST_ID,
 } = require('../../agent-config.json');
 
+// time threshold over which we trigger alerts (24 hours = 86400 seconds)
+// NOTE: this value is imported from the agent-config.json file
+// this value comes from the Chainlink web interface for price feeds (mouseover Trigger parameters)
+//  'A new trusted answer is written when the off-chain price moves more than the deviation
+//   threshold or 86400 seconds have passed since the last answer was written on-chain.'
 const ORACLE_AGE_THRESHOLD_SECONDS = checkReserveUpdateFrequency.oracleAgeThresholdSeconds;
 
 // set up the an ethers provider
-// use ethers.providers.getDefaultProvider() in lieu of ethers.providers.WebSocketProvider()
+// use ethers.providers.JsonRpcProvider() in lieu of ethers.providers.WebSocketProvider()
 // websockets are not supported in production
-// eslint-disable-next-line new-cap
-const jsonRpcProvider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
+const jsonRpcProvider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 
 // there are several reserve tokens in AAVE that do not use Chainlink price oracles
 // we will filter these out before we attempt to determine the age of the oracle data
@@ -49,7 +49,7 @@ function createAlert(reserveToken, oracleAge, priceSourceAddress) {
     description: `Token ${reserveToken.symbol} Price Oracle Age: ${oracleAge} seconds`,
     alertId: 'AE-AAVE-PRICE-ORACLE-STALE',
     severity: FindingSeverity.Medium,
-    type: FindingType.Suspicious,
+    type: FindingType.Degraded,
     everestId: AAVE_EVEREST_ID,
     metadata: {
       symbol: reserveToken.symbol,
@@ -101,10 +101,10 @@ async function initializeTokensContracts() {
   );
 
   // create an array of token / address / contract tuples that we will iterate over
-  const tokenAddressContractTuples = reserveTokenArray.map((token, index) => {
-    const address = priceSourceAddresses[index];
-    const contract = priceSourceContractInstances[index];
-    return [token, address, contract];
+  const tokenAddressContractTuples = reserveTokenArray.map((reserveToken, index) => {
+    const priceSourceAddress = priceSourceAddresses[index];
+    const priceSourceContract = priceSourceContractInstances[index];
+    return { reserveToken, priceSourceAddress, priceSourceContract };
   });
 
   return tokenAddressContractTuples;
@@ -125,7 +125,7 @@ function provideHandleBlock(tokensAddressesContractsPromise) {
 
     // define the promise function to run for each reserve token
     async function checkOracleAge(tokenAddressContract) {
-      const [reserveToken, priceSourceAddress, priceSourceContract] = tokenAddressContract;
+      const { reserveToken, priceSourceAddress, priceSourceContract } = tokenAddressContract;
 
       // get the timestamp from the price source contract
       let roundData;
@@ -162,14 +162,8 @@ function provideHandleBlock(tokensAddressesContractsPromise) {
   };
 }
 
-// closes the ethers provider websocket
-async function teardownProvider() {
-  await jsonRpcProvider.destroy();
-}
-
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(initializeTokensContracts()),
-  teardownProvider,
   createAlert,
 };

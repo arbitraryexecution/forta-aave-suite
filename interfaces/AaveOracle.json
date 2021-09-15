@@ -1,7 +1,7 @@
 {
-	"_format": "hh-sol-artifact-1",
-	"contractName": "AaveOracle",
-	"sourceName": "contracts/misc/AaveOracle.sol",
+  "_format": "hh-sol-artifact-1",
+  "contractName": "AaveOracle",
+  "sourceName": "contracts/misc/AaveOracle.sol",
   "abi": [
     {
       "inputs": [
@@ -241,8 +241,8 @@
       "type": "function"
     }
   ],
-	"bytecode": "",
-	"deployedBytecode": "",
-	"linkReferences": {},
-	"deployedLinkReferences": {}
+  "bytecode": "",
+  "deployedBytecode": "",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
 }
