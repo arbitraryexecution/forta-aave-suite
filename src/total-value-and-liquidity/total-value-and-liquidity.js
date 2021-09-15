@@ -10,8 +10,8 @@ const { createAlert, dataFields } = require('./common');
 const contractAddresses = require('../../contract-addresses.json');
 
 const { LendingPool: lendingPoolAddr, ProtocolDataProvider: dataProviderAddr } = contractAddresses;
-const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
+const { abi: DataAbi } = require('../../abi/AaveProtocolDataProvider.json');
+const { abi: LendingPoolAbi } = require('../../abi/ILendingPool.json');
 
 // get config settings
 const {
