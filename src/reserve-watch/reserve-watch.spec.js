@@ -1,7 +1,7 @@
 const { createBlockEvent } = require('forta-agent');
 const BigNumber = require('bignumber.js');
 const RollingMath = require('rolling-math');
-const { provideHandleBlock, teardownProvider, createAlert } = require('./reserve-watch');
+const { provideHandleBlock, createAlert } = require('./reserve-watch');
 
 jest.mock('rolling-math');
 
@@ -75,10 +75,6 @@ describe('Aave reserve price agent', () => {
     blockHash: '0xa',
     blockNumber: 1,
     block: {},
-  });
-
-  afterEach(() => {
-    teardownProvider();
   });
 
   describe('Reserve Monitoring', () => {
