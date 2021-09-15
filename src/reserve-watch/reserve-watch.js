@@ -13,11 +13,10 @@ const {
   ProtocolDataProvider: dataProvider,
   PriceOracle: priceOracleAddress,
 } = contractAddresses;
-const { abi: dataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
+const { abi: dataAbi } = require('../../abi/AaveProtocolDataProvider.json');
+const { abi: priceOracleAbi } = require('../../abi/IPriceOracle.json');
 
-// eslint-disable-next-line new-cap
-const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
+const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 const ProtocolDataProvider = new ethers.Contract(dataProvider, dataAbi, provider);
 const PriceOracle = new ethers.Contract(priceOracleAddress, priceOracleAbi, provider);
 
@@ -84,16 +83,8 @@ function provideHandleBlock(RollingMathLib, protocolDataProvider, priceOracle) {
   };
 }
 
-/**
- * Closes the Ethers provider websocket
- */
-async function teardownProvider() {
-  await provider.destroy();
-}
-
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(RollingMath, ProtocolDataProvider, PriceOracle),
-  teardownProvider,
   createAlert,
 };

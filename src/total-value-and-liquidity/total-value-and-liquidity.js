@@ -10,8 +10,8 @@ const { createAlert, dataFields } = require('./common');
 const contractAddresses = require('../../contract-addresses.json');
 
 const { LendingPool: lendingPoolAddr, ProtocolDataProvider: dataProviderAddr } = contractAddresses;
-const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
+const { abi: DataAbi } = require('../../abi/AaveProtocolDataProvider.json');
+const { abi: LendingPoolAbi } = require('../../abi/ILendingPool.json');
 
 // get config settings
 const {
@@ -19,8 +19,7 @@ const {
 } = require('../../agent-config.json');
 
 // set up RPC provider
-// eslint-disable-next-line new-cap
-const provider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
+const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 
 // set up handle to Aave's LendingPool contract
 const lendingPoolContract = new ethers.Contract(lendingPoolAddr, LendingPoolAbi, provider);
@@ -121,15 +120,10 @@ function provideHandleBlock(RollingMath, config, lendingPool, dataProvider) {
   };
 }
 
-async function teardownProvider() {
-  await provider.destroy();
-}
-
 // exports
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(
     RollingMathLib, rawConfig, lendingPoolContract, dataProviderContract,
   ),
-  teardownProvider,
 };

@@ -9,7 +9,6 @@ const { createAlert, dataFields } = require('./common');
 // handler to agent
 const {
   provideHandleBlock,
-  teardownProvider,
 } = require('./total-value-and-liquidity');
 
 // mockable libraries
@@ -61,11 +60,6 @@ describe('liquidity and total value locked agent tests', () => {
   let mockRollingMath;
   let mockRollingMathFuncs;
   let mockConfig;
-
-  // kill provider instance at the end of the test
-  afterAll(() => {
-    teardownProvider();
-  });
 
   // we need to set up our testing environment for each test
   beforeEach(() => {
