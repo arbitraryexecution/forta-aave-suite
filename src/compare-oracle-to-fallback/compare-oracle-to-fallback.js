@@ -13,15 +13,16 @@ const { abi: protocolDataProviderAbi } = require('../../interfaces/AaveProtocolD
 const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
 const { abi: priceOracleGetterAbi } = require('../../interfaces/IPriceOracleGetter.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
+const { compareOracleToFallback, aaveEverestId } = require('../../agent-config.json');
 
 // set up the an ethers provider
 // do not use ethers.providers.WebSocketProvider in production (there is no support)
-// eslint-disable-next-line new-cap
-const jsonRpcProvider = new ethers.providers.getDefaultProvider(getJsonRpcUrl());
+const jsonRpcProvider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 
+// NOTE: this value is imported from agent-config.json
 // percent error threshold over which we trigger alerts (2% error compared to the price oracle)
 //   percent error = (absolute(oracle - fallbackOracle) / oracle) * 100
-const AAVE_ORACLE_PERCENT_ERROR_THRESHOLD = 2;
+const AAVE_ORACLE_PERCENT_ERROR_THRESHOLD = compareOracleToFallback.aaveOraclePercentErrorThreshold;
 
 const SECONDS_PER_DAY = 86400;
 
@@ -36,7 +37,7 @@ function createAlert(reserveToken, tokenPrice, tokenPriceFallback, percentError,
     alertId: 'AE-AAVE-FALLBACK-ORACLE-DISPARITY',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
-    everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+    everestId: aaveEverestId,
     metadata: {
       symbol: reserveToken.symbol,
       tokenAddress: reserveToken.tokenAddress,
@@ -59,7 +60,7 @@ async function initializeTokensContractsAlerts() {
 
   // get an array of all of the reserve tokens, in the form of TokenData struct entries
   // ref: https://docs.aave.com/developers/the-core-protocol/protocol-data-provider#getallreservestokens
-  const reserveTokenArray = await protocolDataProviderContract.getAllReservesTokens();
+  const reserveTokens = await protocolDataProviderContract.getAllReservesTokens();
 
   // get the AAVE price oracle address
   const priceOracleAddress = await lendingPoolAddressProviderContract.getPriceOracle();
@@ -84,15 +85,15 @@ async function initializeTokensContractsAlerts() {
   // period, counting the number that would have been generated, then generate another alert when
   // the 24 hour time period has expired
   // create an array of token / oracle / fallback / alerts tuples that we will iterate over
-  const tokenContractFallbackAlertTuples = reserveTokenArray.map((token) => [
-    token,
+  const tokenContractFallbackAlertTuples = reserveTokens.map((reserveToken) => ({
+    reserveToken,
     priceOracleContractInstance,
     fallbackOracleContractInstance,
-    {
+    tokenAlert: {
       numAlertsInLastDay: 0,
       tStart: 0,
     },
-  ]);
+  }));
 
   return tokenContractFallbackAlertTuples;
 }
@@ -112,15 +113,15 @@ function provideHandleBlock(tokensContractsFallbackAlertPromise) {
 
     // define the promise function to run for each reserve token
     async function checkOracleAndFallback(tokenContractFallbackAlert) {
-      const [
+      const {
         reserveToken,
-        oracleContract,
-        fallbackContract,
+        priceOracleContractInstance,
+        fallbackOracleContractInstance,
         tokenAlert,
-      ] = tokenContractFallbackAlert;
+      } = tokenContractFallbackAlert;
 
       // get the asset price from the oracle
-      const oraclePriceEthers = await oracleContract.getAssetPrice(
+      const oraclePriceEthers = await priceOracleContractInstance.getAssetPrice(
         reserveToken.tokenAddress,
         { ...override },
       );
@@ -128,7 +129,7 @@ function provideHandleBlock(tokensContractsFallbackAlertPromise) {
       const oraclePrice = new BigNumber(oraclePriceEthers.toString());
 
       // get the asset price from the fallback oracle
-      const fallbackPriceEthers = await fallbackContract.getAssetPrice(
+      const fallbackPriceEthers = await fallbackOracleContractInstance.getAssetPrice(
         reserveToken.tokenAddress,
         { ...override },
       );
@@ -177,13 +178,8 @@ function provideHandleBlock(tokensContractsFallbackAlertPromise) {
   };
 }
 
-// closes the ethers provider websocket
-async function teardownProvider() {
-  await jsonRpcProvider.destroy();
-}
-
 module.exports = {
   provideHandleBlock,
   handleBlock: provideHandleBlock(initializeTokensContractsAlerts()),
-  teardownProvider,
+  createAlert,
 };
