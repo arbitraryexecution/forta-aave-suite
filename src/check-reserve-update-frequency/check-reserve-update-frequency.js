@@ -11,7 +11,7 @@ const {
 } = require('../../contract-addresses.json');
 const { abi: protocolDataProviderAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
 const { abi: aaveOracleAbi } = require('../../interfaces/AaveOracle.json');
-const { abi: chainlinkAggregatorAbi } = require('../../interfaces/IChainlinkAggregator.json');
+const { abi: chainlinkAggregatorAbi } = require('../../interfaces/AggregatorV3Interface.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
 
 const {
