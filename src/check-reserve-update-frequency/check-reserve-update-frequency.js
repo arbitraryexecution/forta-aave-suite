@@ -9,10 +9,10 @@ const {
   LendingPoolAddressesProvider: lendingPoolAddressesProvider,
   ProtocolDataProvider: protocolDataProviderAddress,
 } = require('../../contract-addresses.json');
-const { abi: protocolDataProviderAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: aaveOracleAbi } = require('../../interfaces/AaveOracle.json');
-const { abi: chainlinkAggregatorAbi } = require('../../interfaces/AggregatorV3Interface.json');
-const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
+const { abi: protocolDataProviderAbi } = require('../../abi/AaveProtocolDataProvider.json');
+const { abi: aaveOracleAbi } = require('../../abi/AaveOracle.json');
+const { abi: chainlinkAggregatorAbi } = require('../../abi/AggregatorV3Interface.json');
+const { abi: lendingPoolAddressesProviderAbi } = require('../../abi/ILendingPoolAddressesProvider.json');
 
 const {
   checkReserveUpdateFrequency,
