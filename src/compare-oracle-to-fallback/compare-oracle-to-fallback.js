@@ -9,10 +9,10 @@ const {
   LendingPoolAddressesProvider: lendingPoolAddressesProvider,
   ProtocolDataProvider: protocolDataProviderAddress,
 } = require('../../contract-addresses.json');
-const { abi: protocolDataProviderAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: priceOracleAbi } = require('../../interfaces/IPriceOracle.json');
-const { abi: priceOracleGetterAbi } = require('../../interfaces/IPriceOracleGetter.json');
-const { abi: lendingPoolAddressesProviderAbi } = require('../../interfaces/ILendingPoolAddressesProvider.json');
+const { abi: protocolDataProviderAbi } = require('../../abi/AaveProtocolDataProvider.json');
+const { abi: priceOracleAbi } = require('../../abi/IPriceOracle.json');
+const { abi: priceOracleGetterAbi } = require('../../abi/IPriceOracleGetter.json');
+const { abi: lendingPoolAddressesProviderAbi } = require('../../abi/ILendingPoolAddressesProvider.json');
 const { compareOracleToFallback, aaveEverestId } = require('../../agent-config.json');
 
 // set up the an ethers provider
