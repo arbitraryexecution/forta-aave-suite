@@ -14,7 +14,7 @@ WORKDIR /app
 COPY ./src ./src
 COPY agent-config.json ./
 COPY contract-addresses.json ./
-COPY ./interfaces ./interfaces
+COPY ./abi ./abi
 COPY package*.json ./
 COPY forta.config.json ./
 RUN npm ci --production

@@ -5,7 +5,7 @@ const RollingMath = require('rolling-math');
 
 // load required shared types
 const { LendingPool: address } = require('../../contract-addresses.json');
-const { abi } = require('../../interfaces/ILendingPool.json');
+const { abi } = require('../../abi/ILendingPool.json');
 
 // create ethers interface object
 const iface = new ethers.utils.Interface(abi);
