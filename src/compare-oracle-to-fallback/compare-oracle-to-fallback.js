@@ -1,116 +1,24 @@
-const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
-const {
-  Finding, FindingSeverity, FindingType, getJsonRpcUrl,
-} = require('forta-agent');
 
-// load required shared types
+const { compareOracleToFallback } = require('../../agent-config.json');
 const {
-  LendingPoolAddressesProvider: lendingPoolAddressesProvider,
-  ProtocolDataProvider: protocolDataProviderAddress,
-} = require('../../contract-addresses.json');
-const { abi: protocolDataProviderAbi } = require('../../abi/AaveProtocolDataProvider.json');
-const { abi: aaveOracleAbi } = require('../../abi/AaveOracle.json');
-const { abi: priceOracleGetterAbi } = require('../../abi/IPriceOracleGetter.json');
-const { abi: lendingPoolAddressesProviderAbi } = require('../../abi/ILendingPoolAddressesProvider.json');
-const { compareOracleToFallback, aaveEverestId } = require('../../agent-config.json');
-
-// set up the an ethers provider
-// do not use ethers.providers.WebSocketProvider in production (there is no support)
-const jsonRpcProvider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
+  initializeTokensContractsAlerts,
+  createAlert,
+  calculatePercentError
+} = require('./agent-setup');
 
 // NOTE: this value is imported from agent-config.json
 // percent error threshold over which we trigger alerts
 //   percent error = (absolute(oracle - fallbackOracle) / oracle) * 100
 const AAVE_ORACLE_PERCENT_ERROR_THRESHOLD = compareOracleToFallback.aaveOraclePercentErrorThreshold;
-
 const SECONDS_PER_DAY = 86400;
-
-// helper function to create alerts
-function createAlert(reserveToken, tokenPrice, tokenPriceFallback, percentError, tokenAlert) {
-  const { numAlertsInLastDay } = tokenAlert;
-  return Finding.fromObject({
-    name: `Large AAVE Price Oracle / Fallback Oracle Difference for ${reserveToken.symbol}`,
-    description:
-    `Token: ${reserveToken.symbol}, Price: ${tokenPrice}, Fallback Price: ${tokenPriceFallback}, `
-    + `Number of alerts in last 24 hours: ${numAlertsInLastDay.toString()}`,
-    alertId: 'AE-AAVE-FALLBACK-ORACLE-DISPARITY',
-    severity: FindingSeverity.High,
-    type: FindingType.Degraded,
-    everestId: aaveEverestId,
-    metadata: {
-      symbol: reserveToken.symbol,
-      tokenAddress: reserveToken.tokenAddress,
-      tokenPrice,
-      tokenPriceFallback,
-      percentError,
-      numAlertsInLastDay,
-    },
-  });
-}
-
-function calculatePercentError(first, second) {
-  const delta = first.minus(second).absoluteValue();
-  return delta.div(first).multipliedBy(100);
-}
-
-async function initializeTokensContractsAlerts() {
-  // create instances of ethers contracts to call read-only methods
-  const protocolDataProviderContract = new ethers.Contract(
-    protocolDataProviderAddress, protocolDataProviderAbi, jsonRpcProvider,
-  );
-  const lendingPoolAddressProviderContract = new ethers.Contract(
-    lendingPoolAddressesProvider, lendingPoolAddressesProviderAbi, jsonRpcProvider,
-  );
-
-  // get an array of all of the reserve tokens, in the form of TokenData struct entries
-  // ref: https://docs.aave.com/developers/the-core-protocol/protocol-data-provider#getallreservestokens
-  const reserveTokens = await protocolDataProviderContract.getAllReservesTokens();
-
-  // get the AAVE price oracle address
-  const aaveOracleAddress = await lendingPoolAddressProviderContract.getPriceOracle();
-  const aaveOracleContractInstance = new ethers.Contract(
-    aaveOracleAddress,
-    aaveOracleAbi,
-    jsonRpcProvider,
-  );
-
-  // get the fallback oracle address
-  const fallbackOracleAddress = await aaveOracleContractInstance.getFallbackOracle();
-
-  // create ethers contract to run read-only methods from the fallback oracle contract
-  const fallbackOracleContractInstance = new ethers.Contract(
-    fallbackOracleAddress,
-    priceOracleGetterAbi,
-    jsonRpcProvider,
-  );
-
-  // none of the fallback oracles are well maintained, so we expect alerts for every block
-  // therefore, we will generate the first alert, then suppress any additional alerts over a 24 hour
-  // period, counting the number that would have been generated, then generate another alert when
-  // the 24 hour time period has expired
-  // create an array of token / oracle / fallback / alerts tuples that we will iterate over
-  const tokenContractFallbackAlertTuples = reserveTokens.map((reserveToken) => ({
-    reserveToken,
-    aaveOracleContractInstance,
-    fallbackOracleContractInstance,
-    tokenAlert: {
-      numAlertsInLastDay: 0,
-      tStart: 0,
-    },
-  }));
-
-  return tokenContractFallbackAlertTuples;
-}
 
 function provideHandleBlock(tokensContractsFallbackAlertPromise) {
   return async function handleBlock(blockEvent) {
     const findings = [];
 
     // settle the promise the first time, all subsequent times just get the resolve() value
-    const tokensContractsFallbackAlert = await tokensContractsFallbackAlertPromise();
-
-    console.log(tokensContractsFallbackAlert);
+    const tokensContractsFallbackAlert = await tokensContractsFallbackAlertPromise;
 
     // override block number so we get data from the block in question
     const override = { blockTag: blockEvent.blockNumber };
@@ -187,7 +95,5 @@ function provideHandleBlock(tokensContractsFallbackAlertPromise) {
 
 module.exports = {
   provideHandleBlock,
-  handleBlock: provideHandleBlock(initializeTokensContractsAlerts),
-  createAlert,
-  calculatePercentError,
+  handleBlock: provideHandleBlock(initializeTokensContractsAlerts()),
 };
