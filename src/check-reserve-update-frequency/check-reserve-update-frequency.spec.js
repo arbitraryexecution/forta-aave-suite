@@ -6,43 +6,45 @@ const { provideHandleBlock, createAlert } = require('./check-reserve-update-freq
 describe('AAVE reserve price oracle agent', () => {
   let handleBlock;
 
-  // this function allows us to mock the behavior of the initializeTokensContracts function
-  // in production, that function:
-  //   - gets an Array of reserve token addresses from the Protocol Data Provider contract
-  //   - gets the Price Oracle address from the  Lending Pool Address Provider contract
-  //   - gets the Price Source address for each reserve token address
-  //   - gets the Price Source contract for each reserve token address
-  //   - returns an Array of Tuples, where each Tuple has the form:
-  //     (reserve token address, price source contract address, price source contract ethers object)
-  function mockTokensAddressesContractPromise(mockTimestamp) {
-    // create an array of reserve tokens
-    const reserveTokens = [
-      { symbol: 'FAKE1', tokenAddress: '0xFIRSTFAKETOKENADDRESS' },
-    ];
+  function getMockFunction(mockTimestamp) {
+    return function mockTokensAddressesContractPromise() {
+      // this function allows us to mock the behavior of the initializeTokensContracts function
+      // in production, that function:
+      //   - gets an Array of reserve token addresses from the Protocol Data Provider contract
+      //   - gets the Price Oracle address from the  Lending Pool Address Provider contract
+      //   - gets the Price Source address for each reserve token address
+      //   - gets the Price Source contract for each reserve token address
+      //   - returns an Array of Tuples, where each Tuple has the form:
+      //     (reserve token address, price source contract address, price source contract ethers object)
+      // create an array of reserve tokens
+      const reserveTokens = [
+        { symbol: 'FAKE1', tokenAddress: '0xFIRSTFAKETOKENADDRESS' },
+      ];
 
-    // create an array of contract addresses that correspond to the reserve tokens
-    const contractAddresses = [
-      '0xFIRSTFAKECONTRACTADDRESS',
-    ];
+      // create an array of contract addresses that correspond to the reserve tokens
+      const contractAddresses = [
+        '0xFIRSTFAKECONTRACTADDRESS',
+      ];
 
-    // create the Array of Tuples of token addresses / contract addresses / contract objects
-    // pass our mockTimestamp in to the mocked return value (roundData.updatedAt) to facilitate
-    // testing against different timestamp conditions
-    const tokenAddressesContractTuples = reserveTokens.map((reserveToken, index) => {
-      const priceSourceAddress = contractAddresses[index];
-      // need to create mock contract that has .latestRoundData method and returns roundData
-      const priceSourceContract = {
-        latestRoundData: jest.fn(() => Promise.resolve({
-          updatedAt: new BigNumber(mockTimestamp),
-        })),
-      };
-      return { reserveToken, priceSourceAddress, priceSourceContract };
-    });
+      // create the Array of Tuples of token addresses / contract addresses / contract objects
+      // pass our mockTimestamp in to the mocked return value (roundData.updatedAt) to facilitate
+      // testing against different timestamp conditions
+      const tokenAddressesContractTuples = reserveTokens.map((reserveToken, index) => {
+        const priceSourceAddress = contractAddresses[index];
+        // need to create mock contract that has .latestRoundData method and returns roundData
+        const priceSourceContract = {
+          latestRoundData: jest.fn(() => Promise.resolve({
+            updatedAt: new BigNumber(mockTimestamp),
+          })),
+        };
+        return { reserveToken, priceSourceAddress, priceSourceContract };
+      });
 
-    // wrap the Array of Tuples in a Promise (which we will resolve immediately)
-    // the original function returns a Promise that is resolved when all contract interactions have
-    // finished
-    return Promise.resolve(tokenAddressesContractTuples);
+      // wrap the Array of Tuples in a Promise (which we will resolve immediately)
+      // the original function returns a Promise that is resolved when all contract interactions have
+      // finished
+      return Promise.resolve(tokenAddressesContractTuples);
+    };
   }
 
   describe('Reserve Price Oracle Monitoring', () => {
@@ -61,13 +63,13 @@ describe('AAVE reserve price oracle agent', () => {
       });
 
       // create the mocked promise to pass in to provideHandleBlock
-      const tokensAddressesContracts = await mockTokensAddressesContractPromise(updatedAtTimestamp);
+      const tokensAddressesContracts = getMockFunction(updatedAtTimestamp);
 
       // create the block handler
       handleBlock = provideHandleBlock(tokensAddressesContracts);
 
       // create expected finding
-      const { reserveToken, priceSourceAddress } = tokensAddressesContracts[0];
+      const { reserveToken, priceSourceAddress } = (await tokensAddressesContracts())[0];
       const expectedFinding = createAlert(reserveToken, oracleAgeTooOld, priceSourceAddress);
 
       // we expect to trigger an alert based on the oracle being one second too old (24 hr + 1 sec)
@@ -89,7 +91,7 @@ describe('AAVE reserve price oracle agent', () => {
       });
 
       // create the mocked promise to pass in to provideHandleBlock
-      const tokensAddressesContracts = await mockTokensAddressesContractPromise(updatedAtTimestamp);
+      const tokensAddressesContracts = getMockFunction(updatedAtTimestamp);
 
       // create the block handler
       handleBlock = provideHandleBlock(tokensAddressesContracts);

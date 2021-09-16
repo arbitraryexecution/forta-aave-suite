@@ -114,11 +114,11 @@ function provideHandleBlock(tokensAddressesContractsPromise) {
   return async function handleBlock(blockEvent) {
     const findings = [];
 
-    // settle the promise the first time, all subsequent times just get the resolve() value
-    const tokensAddressesContracts = await tokensAddressesContractsPromise;
-
     // get the timestamp for the current block
     const blockTimestamp = new BigNumber(blockEvent.block.timestamp);
+
+    // settle the promise the first time, all subsequent times just get the resolve() value
+    const tokensAddressesContracts = await tokensAddressesContractsPromise();
 
     // override block number so we get data from the block in question
     const override = { blockTag: blockEvent.blockNumber };
@@ -164,6 +164,6 @@ function provideHandleBlock(tokensAddressesContractsPromise) {
 
 module.exports = {
   provideHandleBlock,
-  handleBlock: provideHandleBlock(initializeTokensContracts()),
+  handleBlock: provideHandleBlock(initializeTokensContracts),
   createAlert,
 };
