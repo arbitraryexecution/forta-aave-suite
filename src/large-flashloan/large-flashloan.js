@@ -1,17 +1,16 @@
 const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
 const { getJsonRpcUrl } = require('forta-agent');
-const RollingMathLib = require('rolling-math');
 
 // get createAlert and dataFields
-const { createAlert, dataFields } = require('./common');
+const { createAlert } = require('./common');
 
 // load required shared types
 const contractAddresses = require('../../contract-addresses.json');
 
 const { LendingPool: lendingPoolAddr, ProtocolDataProvider: dataProviderAddr } = contractAddresses;
-const { abi: DataAbi } = require('../../interfaces/AaveProtocolDataProvider.json');
-const { abi: LendingPoolAbi } = require('../../interfaces/ILendingPool.json');
+const { abi: IERC20Abi } = require('../../abi/IERC20.json');
+const { abi: LendingPoolAbi } = require('../../abi/ILendingPool.json');
 
 // get config settings
 const {
