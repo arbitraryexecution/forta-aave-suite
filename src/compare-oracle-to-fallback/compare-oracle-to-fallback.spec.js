@@ -14,7 +14,7 @@ const { provideHandleBlock } = require('./compare-oracle-to-fallback');
 
 const SECONDS_PER_DAY = 86400;
 
-describe('AAVE oracle versus fallback oracle agent', () => {
+describe('Aave oracle versus fallback oracle agent', () => {
   let handleBlock;
 
   function mockTokensContractsAlertsPromise(assetPriceOracle, assetPriceFallback, tStart) {

@@ -28,7 +28,7 @@ function calculatePercentError(first, second) {
 function createAlert(reserveToken, tokenPrice, tokenPriceFallback, percentError, tokenAlert) {
   const { numAlertsInLastDay } = tokenAlert;
   return Finding.fromObject({
-    name: `Large AAVE Price Oracle / Fallback Oracle Difference for ${reserveToken.symbol}`,
+    name: `Aave Fallback Oracle Price Difference for ${reserveToken.symbol}`,
     description:
     `Token: ${reserveToken.symbol}, Price: ${tokenPrice}, Fallback Price: ${tokenPriceFallback}, `
     + `Number of alerts in last 24 hours: ${numAlertsInLastDay.toString()}`,
