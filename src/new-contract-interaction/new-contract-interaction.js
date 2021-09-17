@@ -129,6 +129,11 @@ function provideHandleTransaction(ethersProvider) {
 
       // process the results
       txData.forEach((item) => {
+        // bail if the API did not return a valid result
+        if (item.response.data.status === 0) {
+          return;
+        }
+
         // get the timestamp from the earliest transaction
         const creationTime = item.response.data.result[0].timeStamp;
 
