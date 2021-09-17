@@ -1,4 +1,4 @@
-const { TransactionEvent } = require('forta-agent');
+const { createTransactionEvent } = require('forta-agent');
 const axios = require('axios');
 const agent = require('./new-contract-interaction');
 
@@ -58,19 +58,6 @@ describe('mock ethers getCode request', () => {
 describe('new contract interaction monitoring', () => {
   let handleTransaction = null;
 
-  // function for creating a simulated transaction
-  const createTxEvent = ({ to, addresses }) => {
-    const type = null;
-    const network = null;
-    const transaction = {
-      to,
-    };
-    const receipt = {};
-    const traces = [];
-    const block = {};
-    return new TransactionEvent(type, network, transaction, receipt, traces, addresses, block);
-  };
-
   // pass in mockEthers as the provider for handleTransaction() to use
   beforeAll(() => {
     handleTransaction = agent.provideHandleTransaction(mockEthersProvider);
@@ -83,8 +70,10 @@ describe('new contract interaction monitoring', () => {
 
   describe('handleTransaction', () => {
     it('returns empty findings if the LendingPool contract is not invoked', async () => {
-      const txEvent = createTxEvent({
-        to: '0x1',
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: '0x1',
+        },
         addresses: {
           '0x1': true,
           '0x2': true,
@@ -100,8 +89,10 @@ describe('new contract interaction monitoring', () => {
     });
 
     it('returns empty findings if the invocation is not from a contract', async () => {
-      const txEvent = createTxEvent({
-        to: agent.lendingPoolV2Address,
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: agent.lendingPoolV2Address,
+        },
         addresses: {
           [agent.lendingPoolV2Address]: true,
           '0x1': true,
@@ -119,8 +110,10 @@ describe('new contract interaction monitoring', () => {
     });
 
     it('returns empty findings if the invocation is from an old contract', async () => {
-      const txEvent = createTxEvent({
-        to: agent.lendingPoolV2Address,
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: agent.lendingPoolV2Address,
+        },
         addresses: {
           [agent.lendingPoolV2Address]: true,
           '0x1': true,
@@ -146,8 +139,10 @@ describe('new contract interaction monitoring', () => {
     it('returns a finding if a new contract was involved in the transaction', async () => {
       const address = '0x1';
 
-      const txEvent = createTxEvent({
-        to: agent.lendingPoolV2Address,
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: agent.lendingPoolV2Address,
+        },
         addresses: {
           [agent.lendingPoolV2Address]: true,
           [address]: true,
