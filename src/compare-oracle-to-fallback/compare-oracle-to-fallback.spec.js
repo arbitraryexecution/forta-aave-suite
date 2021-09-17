@@ -12,7 +12,8 @@ jest.mock('./agent-setup', () => ({
 const { createAlert, calculatePercentError } = require('./agent-setup');
 const { provideHandleBlock } = require('./compare-oracle-to-fallback');
 
-const SECONDS_PER_DAY = 86400;
+const { compareOracleToFallback } = require('../../agent-config.json');
+const ALERT_MINIMUM_INTERVAL_SECONDS = compareOracleToFallback.alertMinimumIntervalSeconds;
 
 describe('Aave oracle versus fallback oracle agent', () => {
   let handleBlock;
@@ -57,7 +58,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const blockTimestamp = 1234567890;
 
       // create a timestamp for when the last alert was triggered, greater than 24 hours ago
-      const tStart = blockTimestamp - SECONDS_PER_DAY - 1;
+      const tStart = blockTimestamp - ALERT_MINIMUM_INTERVAL_SECONDS - 1;
 
       // need to create blockEvent (with .block.timestamp and .blockNumber)
       const mockedBlockEvent = createBlockEvent({
@@ -103,7 +104,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const blockTimestamp = 1234567890;
 
       // create a timestamp for when the last alert was triggered, less than 24 hours ago
-      const tStart = blockTimestamp - SECONDS_PER_DAY + 1;
+      const tStart = blockTimestamp - ALERT_MINIMUM_INTERVAL_SECONDS + 1;
 
       // need to create blockEvent (with .block.timestamp and .blockNumber)
       const mockedBlockEvent = createBlockEvent({
@@ -141,7 +142,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const blockTimestamp = 1234567890;
 
       // create a timestamp for when the last alert was triggered, greater than 24 hours ago
-      const tStart = blockTimestamp - SECONDS_PER_DAY - 1;
+      const tStart = blockTimestamp - ALERT_MINIMUM_INTERVAL_SECONDS - 1;
 
       // need to create blockEvent (with .block.timestamp and .blockNumber)
       const mockedBlockEvent = createBlockEvent({

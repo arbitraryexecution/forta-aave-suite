@@ -11,7 +11,7 @@ const {
 // percent error threshold over which we trigger alerts
 //   percent error = (absolute(oracle - fallbackOracle) / oracle) * 100
 const AAVE_ORACLE_PERCENT_ERROR_THRESHOLD = compareOracleToFallback.aaveOraclePercentErrorThreshold;
-const SECONDS_PER_DAY = 86400;
+const ALERT_MINIMUM_INTERVAL_SECONDS = compareOracleToFallback.alertMinimumIntervalSeconds;
 
 function provideHandleBlock(tokensContractsFallbackAlertPromise) {
   return async function handleBlock(blockEvent) {
@@ -60,7 +60,7 @@ function provideHandleBlock(tokensContractsFallbackAlertPromise) {
       if (percentError.isGreaterThan(AAVE_ORACLE_PERCENT_ERROR_THRESHOLD)) {
         // if less than 24 hours have elapsed, just increment the counter for the number of alerts
         // that would have been generated
-        if (blockTimestamp.minus(tokenAlert.tStart) < SECONDS_PER_DAY) {
+        if (blockTimestamp.minus(tokenAlert.tStart) < ALERT_MINIMUM_INTERVAL_SECONDS) {
           tokenAlert.numAlertsInLastDay += 1;
         } else {
           // create the alert
