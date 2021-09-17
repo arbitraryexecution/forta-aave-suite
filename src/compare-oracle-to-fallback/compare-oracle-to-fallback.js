@@ -4,7 +4,7 @@ const { compareOracleToFallback } = require('../../agent-config.json');
 const {
   initializeTokensContractsAlerts,
   createAlert,
-  calculatePercentError
+  calculatePercentError,
 } = require('./agent-setup');
 
 // NOTE: this value is imported from agent-config.json

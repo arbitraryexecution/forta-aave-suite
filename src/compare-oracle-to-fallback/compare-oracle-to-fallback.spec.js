@@ -13,6 +13,7 @@ const { createAlert, calculatePercentError } = require('./agent-setup');
 const { provideHandleBlock } = require('./compare-oracle-to-fallback');
 
 const { compareOracleToFallback } = require('../../agent-config.json');
+
 const ALERT_MINIMUM_INTERVAL_SECONDS = compareOracleToFallback.alertMinimumIntervalSeconds;
 
 describe('Aave oracle versus fallback oracle agent', () => {
@@ -72,7 +73,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const tokensContractsAlerts = await mockTokensContractsAlertsPromise(
         assetPriceOracle,
         assetPriceFallback,
-        tStart
+        tStart,
       );
 
       // create the block handler
@@ -118,7 +119,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const tokensContractsAlerts = await mockTokensContractsAlertsPromise(
         assetPriceOracle,
         assetPriceFallback,
-        tStart
+        tStart,
       );
 
       // create the block handler
@@ -156,7 +157,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const tokensContractsAlerts = await mockTokensContractsAlertsPromise(
         assetPriceOracle,
         assetPriceFallback,
-        tStart
+        tStart,
       );
 
       // create the block handler
