@@ -5,7 +5,7 @@
     "minElements": 40
   },
   "anomalous-value" : {
-    "standardDevation" : 3
+    "standardDeviation" : 3
   },
   "reserveWatch" : {
     "windowSize": 100,
@@ -14,6 +14,9 @@
   },
   "checkReserveUpdateFrequency" : {
     "oracleAgeThresholdSeconds": 86400
+  },
+  "newContractInteraction" : {
+    "thresholdAgeDays": 7
   },
   "aaveEverestId": "0x55d07cab60a86966a01680e2242c4af4080a5566"
 }

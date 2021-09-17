@@ -22,4 +22,5 @@ tokenAddresses.forEach((item) => {
 // write out the list to token-addresses.json
 fs.writeFileSync('./token-addresses.json', JSON.stringify(addresses));
 
+// eslint-disable-next-line no-console
 console.log(`Extracted ${addresses.length} addresses.`);

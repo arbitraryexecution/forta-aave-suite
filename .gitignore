@@ -1,4 +1,5 @@
 node_modules
 dist
 forta.config.json
+.env
 

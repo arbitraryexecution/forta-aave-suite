@@ -1,10 +1,4 @@
-const {
-  FindingType,
-  FindingSeverity,
-  Finding,
-  TransactionEvent,
-} = require('forta-agent');
-
+const { TransactionEvent } = require('forta-agent');
 const axios = require('axios');
 const agent = require('./new-contract-interaction');
 
@@ -173,20 +167,7 @@ describe('new contract interaction monitoring', () => {
       // check assertions
       expect(axios.get).toHaveBeenCalledTimes(1); // expect 1 call for the non-aave address
       expect(contractAge).toEqual(1);
-      expect(findings).toStrictEqual([
-        Finding.fromObject({
-          name: 'New Contract Interaction',
-          description: `Aave LendingPool was invoked by new contract ${address}`,
-          alertId: 'AE-AAVE-NEW-CONT-INTERACT',
-          severity: FindingSeverity.Medium,
-          type: FindingType.Suspicious,
-          metadata: {
-            address,
-            contractAge,
-          },
-          everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
-        }),
-      ]);
+      expect(findings).toStrictEqual([agent.createAlert(address, contractAge)]);
     });
   });
 });
