@@ -30,8 +30,8 @@ function createAlert(reserveToken, tokenPrice, tokenPriceFallback, percentError,
   return Finding.fromObject({
     name: `Aave Fallback Oracle Price Difference for ${reserveToken.symbol}`,
     description:
-    `Token: ${reserveToken.symbol}, Price: ${tokenPrice}, Fallback Price: ${tokenPriceFallback}, `
-    + `Number of alerts in last 24 hours: ${numAlertsInLastDay.toString()}`,
+      `Token: ${reserveToken.symbol}, Price: ${tokenPrice}, Fallback Price: ${tokenPriceFallback}, `
+      + `Number of alerts in last 24 hours: ${numAlertsInLastDay.toString()}`,
     alertId: 'AE-AAVE-FALLBACK-ORACLE-DISPARITY',
     severity: FindingSeverity.High,
     type: FindingType.Degraded,
