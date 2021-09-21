@@ -41,7 +41,7 @@ const BASE_URL = 'https://api.etherscan.io/api?module=account&action=txlist&addr
 const OPTIONS = '&startblock=0&endblock=999999999&page=1&offset=10&sort=asc&apikey=';
 const API_KEY = process.env.ETHERSCAN_API_KEY; // free tier is limited to 5 calls/sec
 
-// setup provider for contract interaction
+// set up provider for contract interaction
 const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 
 // print log messages only if DEBUG=true
