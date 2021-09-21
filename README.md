@@ -66,7 +66,8 @@ Additional handlers are currently under development.
 
 <!-- -->
 - AE-AAVE-NEW-CONTRACT-INTERACTION
-  - Fired when a relatively new contract interacts with the Aave Lending Pool contract
+  - Fired when a relatively new contract (age defined in config JSON file) interacts with the Aave
+    Lending Pool contract
   - Severity is always set to "medium"
   - Type is always set to "suspicious"
   - Metadata field contains the contract address and contract age in days

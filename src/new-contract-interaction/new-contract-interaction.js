@@ -73,7 +73,7 @@ function provideHandleTransaction(ethersProvider) {
       return findings;
     }
 
-    // get all addresses involved with this transaction that are non-Aave contracts
+    // get all addresses involved with this transaction
     let addresses = Object.keys(txEvent.addresses);
 
     // to minimize Etherscan requests (slow and rate limited to 5/sec for the free tier),
@@ -83,11 +83,13 @@ function provideHandleTransaction(ethersProvider) {
       contractAddresses.IncentivesController.toLowerCase(),
     ];
     exclusions = exclusions.concat(tokenAddresses);
+
+    // filter transaction addresses to remove Aave contract addresses
     addresses = addresses.filter((item) => exclusions.indexOf(item) < 0);
 
     // watch for recently created contracts interacting with Aave lending pool
     if (txEvent.transaction.to === lendingPoolV2Address) {
-      // create an array of promises that retrive the contract code for each address
+      // create an array of promises that retrieve the contract code for each address
       const contractCodePromises = [];
       let contractCode = [];
       addresses.forEach((address) => {
@@ -102,7 +104,7 @@ function provideHandleTransaction(ethersProvider) {
         contractCodePromises.push(codePromise.catch(() => undefined));
       });
 
-      // resolve the requests
+      // wait for the promises to be settled
       await Promise.all(contractCodePromises);
 
       // filter out EOAs from our original list of addresses
@@ -124,7 +126,7 @@ function provideHandleTransaction(ethersProvider) {
         etherscanTxlistPromises.push(txlistPromise.catch(() => undefined));
       });
 
-      // resolve the requests
+      // wait for the promises to be settled
       await Promise.all(etherscanTxlistPromises);
 
       // process the results
@@ -138,7 +140,7 @@ function provideHandleTransaction(ethersProvider) {
         const creationTime = item.response.data.result[0].timeStamp;
 
         // compute days elapsed since contract creation
-        const currentTime = Date.now() / 1000;
+        const currentTime = txEvent.timestamp;
         log(`Contract address: ${item.address}`);
         const contractAge = getContractAge(currentTime, creationTime);
         log(`Contract was created ${contractAge} days ago`);

@@ -69,6 +69,10 @@ describe('new contract interaction monitoring', () => {
   });
 
   describe('handleTransaction', () => {
+    it('should have an Etherscan API key', () => {
+      expect(process.env.ETHERSCAN_API_KEY).not.toBe(undefined);
+    });
+
     it('returns empty findings if the LendingPool contract is not invoked', async () => {
       const txEvent = createTransactionEvent({
         transaction: {
@@ -78,6 +82,7 @@ describe('new contract interaction monitoring', () => {
           '0x1': true,
           '0x2': true,
         },
+        block: { timestamp: Date.now() / 1000 },
       });
 
       // run forta agent
@@ -97,6 +102,7 @@ describe('new contract interaction monitoring', () => {
           [agent.lendingPoolV2Address]: true,
           '0x1': true,
         },
+        block: { timestamp: Date.now() / 1000 },
       });
 
       mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
@@ -118,6 +124,7 @@ describe('new contract interaction monitoring', () => {
           [agent.lendingPoolV2Address]: true,
           '0x1': true,
         },
+        block: { timestamp: Date.now() / 1000 },
       });
 
       mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseContract);
@@ -147,6 +154,7 @@ describe('new contract interaction monitoring', () => {
           [agent.lendingPoolV2Address]: true,
           [address]: true,
         },
+        block: { timestamp: Date.now() / 1000 },
       });
 
       mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseContract);
