@@ -7,18 +7,44 @@ const {
 const ethers = require('ethers');
 const axios = require('axios');
 
+const DEBUG = false; // enable/disable console logging for debugging
+
 // load configuration data from agent config file
 const {
   newContractInteraction,
   aaveEverestId: AAVE_EVEREST_ID,
 } = require('../../agent-config.json');
 
+// load required shared types
+let {
+  IncentivesController: incentivesControllerAddress,
+  LendingPool: lendingPoolAddress,
+} = require('../../contract-addresses.json');
+const {
+  ProtocolDataProvider: protocolDataProviderAddress,
+} = require('../../contract-addresses.json');
+const { abi: protocolDataProviderAbi } = require('../../abi/AaveProtocolDataProvider.json');
+
+// convert addresses that need to be matched in transactions to lowercase
+incentivesControllerAddress = incentivesControllerAddress.toLowerCase();
+lendingPoolAddress = lendingPoolAddress.toLowerCase();
+
+// stores aToken addresses
+let aTokenAddresses;
+
 // read the .env file and populate process.env with keys/values
 require('dotenv').config();
 
-const DEBUG = false; // enable/disable console logging for debugging
+// etherscan API components
+// this endpoint will list transactions for a given address, sorted oldest to newest
+const BASE_URL = 'https://api.etherscan.io/api?module=account&action=txlist&address=';
+const OPTIONS = '&startblock=0&endblock=999999999&page=1&offset=10&sort=asc&apikey=';
+const API_KEY = process.env.ETHERSCAN_API_KEY; // free tier is limited to 5 calls/sec
 
-// print log messages only if debug=true
+// setup provider for contract interaction
+const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
+
+// print log messages only if DEBUG=true
 function log(message) {
   if (DEBUG) {
     console.log(message); // eslint-disable-line no-console
@@ -31,21 +57,23 @@ function getContractAge(currentTime, creationTime) {
   return Math.floor((currentTime - creationTime) / 60 / (60 * 24));
 }
 
-// load config files
-const contractAddresses = require('../../contract-addresses.json');
-const tokenAddresses = require('./token-addresses.json');
+// gets a list of all aToken addresses currently registered with the ProtocolDataProvider
+// contract
+// the mainnet.json file online (https://aave.github.io/aave-addresses/mainnet.json) appears to
+// be out of sync with the data returned by getAllATokens(), so we take the contract as the source
+// of truth
+async function getATokenAddresses() {
+  const protocolDataProviderContract = new ethers.Contract(
+    protocolDataProviderAddress, protocolDataProviderAbi, provider,
+  );
+  const aTokens = await protocolDataProviderContract.getAllATokens();
+  const tokenAddresses = [];
+  aTokens.forEach((aToken) => {
+    tokenAddresses.push(aToken.tokenAddress.toLowerCase());
+  });
 
-// etherscan API components
-// this endpoint will list transactions for a given address, sorted oldest to newest
-const baseUrl = 'https://api.etherscan.io/api?module=account&action=txlist&address=';
-const options = '&startblock=0&endblock=999999999&page=1&offset=10&sort=asc&apikey=';
-const apiKey = process.env.ETHERSCAN_API_KEY; // free tier is limited to 5 calls/sec
-
-// setup provider for contract interaction
-const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
-
-// only watch transactions on the LendingPool contract
-const lendingPoolV2Address = contractAddresses.LendingPool.toLowerCase();
+  return tokenAddresses;
+}
 
 // helper function to create alerts
 function createAlert(address, contractAge) {
@@ -69,8 +97,15 @@ function provideHandleTransaction(ethersProvider) {
 
     // for performance reasons, don't continue to run this handler if an Etherscan API key
     // was not provided
-    if (apiKey === undefined) {
+    if (API_KEY === undefined) {
       return findings;
+    }
+
+    // get atoken addresses (one-time operation)
+    // these addresses will be seen interacting with the lending pool in transactions,
+    // so we filter them out later
+    if (aTokenAddresses === undefined) {
+      aTokenAddresses = await getATokenAddresses();
     }
 
     // get all addresses involved with this transaction
@@ -79,16 +114,16 @@ function provideHandleTransaction(ethersProvider) {
     // to minimize Etherscan requests (slow and rate limited to 5/sec for the free tier),
     // exclude the lending pool address, the incentives controller, and all token addresses
     let exclusions = [
-      lendingPoolV2Address,
-      contractAddresses.IncentivesController.toLowerCase(),
+      lendingPoolAddress,
+      incentivesControllerAddress,
     ];
-    exclusions = exclusions.concat(tokenAddresses);
+    exclusions = exclusions.concat(aTokenAddresses);
 
     // filter transaction addresses to remove Aave contract addresses
     addresses = addresses.filter((item) => exclusions.indexOf(item) < 0);
 
     // watch for recently created contracts interacting with Aave lending pool
-    if (txEvent.transaction.to === lendingPoolV2Address) {
+    if (txEvent.transaction.to === lendingPoolAddress) {
       // create an array of promises that retrieve the contract code for each address
       const contractCodePromises = [];
       let contractCode = [];
@@ -116,7 +151,7 @@ function provideHandleTransaction(ethersProvider) {
       const etherscanTxlistPromises = [];
       const txData = [];
       contractCode.forEach((item) => {
-        const txlistPromise = axios.get(baseUrl + item.address + options + apiKey);
+        const txlistPromise = axios.get(BASE_URL + item.address + OPTIONS + API_KEY);
 
         // associate each address with the transaction list that was returned
         txlistPromise.then((result) => txData.push({ address: item.address, response: result }));
@@ -161,5 +196,5 @@ module.exports = {
   handleTransaction: provideHandleTransaction(provider),
   getContractAge,
   createAlert,
-  lendingPoolV2Address,
+  lendingPoolAddress,
 };

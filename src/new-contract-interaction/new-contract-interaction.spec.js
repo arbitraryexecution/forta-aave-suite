@@ -96,10 +96,10 @@ describe('new contract interaction monitoring', () => {
     it('returns empty findings if the invocation is not from a contract', async () => {
       const txEvent = createTransactionEvent({
         transaction: {
-          to: agent.lendingPoolV2Address,
+          to: agent.lendingPoolAddress,
         },
         addresses: {
-          [agent.lendingPoolV2Address]: true,
+          [agent.lendingPoolAddress]: true,
           '0x1': true,
         },
         block: { timestamp: Date.now() / 1000 },
@@ -118,10 +118,10 @@ describe('new contract interaction monitoring', () => {
     it('returns empty findings if the invocation is from an old contract', async () => {
       const txEvent = createTransactionEvent({
         transaction: {
-          to: agent.lendingPoolV2Address,
+          to: agent.lendingPoolAddress,
         },
         addresses: {
-          [agent.lendingPoolV2Address]: true,
+          [agent.lendingPoolAddress]: true,
           '0x1': true,
         },
         block: { timestamp: Date.now() / 1000 },
@@ -148,10 +148,10 @@ describe('new contract interaction monitoring', () => {
 
       const txEvent = createTransactionEvent({
         transaction: {
-          to: agent.lendingPoolV2Address,
+          to: agent.lendingPoolAddress,
         },
         addresses: {
-          [agent.lendingPoolV2Address]: true,
+          [agent.lendingPoolAddress]: true,
           [address]: true,
         },
         block: { timestamp: Date.now() / 1000 },
