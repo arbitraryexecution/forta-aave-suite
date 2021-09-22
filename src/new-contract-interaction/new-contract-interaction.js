@@ -67,8 +67,8 @@ function getContractAge(currentTime, creationTime) {
 // the mainnet.json file online (https://aave.github.io/aave-addresses/mainnet.json) appears to
 // be out of sync with the data returned by getAllATokens(), so we take the contract as the source
 // of truth
-async function getATokenAddresses(protocolDataProviderContract) {
-  const aTokens = await protocolDataProviderContract.getAllATokens();
+async function getATokenAddresses(protocolDataProvider) {
+  const aTokens = await protocolDataProvider.getAllATokens();
   const tokenAddresses = [];
   aTokens.forEach((aToken) => {
     tokenAddresses.push(aToken.tokenAddress.toLowerCase());

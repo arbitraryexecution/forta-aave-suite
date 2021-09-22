@@ -1,4 +1,3 @@
-const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
 
 const { checkReserveUpdateFrequency } = require('../../agent-config.json');
