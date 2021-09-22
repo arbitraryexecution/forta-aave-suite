@@ -11,6 +11,7 @@ the following handlers:
 - reserve-watch
 - total-value-and-liquidity
 - check-reserve-update-frequency
+- compare-oracle-to-fallback
 - new-contract-interaction
 
 ## Supported Chains
