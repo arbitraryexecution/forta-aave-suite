@@ -13,8 +13,6 @@ the following handlers:
 - check-reserve-update-frequency
 - new-contract-interaction
 
-Additional handlers are currently under development.
-
 ## Supported Chains
 
 - Ethereum
@@ -27,7 +25,7 @@ Additional handlers are currently under development.
   - Type is always set to "suspicious"
   - Metadata field contains symbol and price
 
-<!-- -->  
+<!-- -->
 - AE-AAVE-ADDRESS-WATCH
   - Fired when any address from a pre-defined watchlist is involved in a transaction
   - Severity is always set to "low"
@@ -61,14 +59,20 @@ Additional handlers are currently under development.
   - Fired when data from an AAVE price oracle (Chainlink aggregator) is older than 24 hours
   - Severity is always set to "medium"
   - Type is always set to "degraded"
-  - Metadata field contains additional alert information (token symbol, token address, oracle data age, oracle contract address)
+  - Metadata field contains additional alert information (token symbol, token address, oracle data
+    age, oracle contract address)
 
 - AE-AAVE-FALLBACK-ORACLE-DISPARITY
-  - Fired when the percent error between the asset price from the price oracle (Chainlink aggregator) and the asset price from the fallback oracle is greater than 2%
-  - The fallback oracles are not well maintained, leading to the possibility of triggering alerts for every blockEvent.  Therefore, alerts are only emitted every 24 hours, containing a count of how many times an alert would have been triggered.
+  - Fired when the percent error between the asset price from the price oracle (Chainlink
+    aggregator) and the asset price from the fallback oracle is greater than 2%
+  - The fallback oracles are not well maintained, leading to the possibility of triggering alerts
+    for every blockEvent.  Therefore, alerts are only emitted every 24 hours, containing a count of
+    how many times an alert would have been triggered.
   - Severity is always set to 'high'
   - Type is always set to 'degraded'
-  - Metadata field contains additional alert information (token symbol, token address, oracle asset price, fallback oracle asset price, percent error, and number of alerts accumulated in the last 24 hours)
+  - Metadata field contains additional alert information (token symbol, token address, oracle asset
+    price, fallback oracle asset price, percent error, and number of alerts accumulated in the last
+    24 hours)
 <!-- -->
 - AE-AAVE-NEW-CONTRACT-INTERACTION
   - Fired when a relatively new contract (age defined in config JSON file) interacts with the Aave
