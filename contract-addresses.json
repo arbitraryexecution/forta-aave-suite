@@ -13,7 +13,7 @@
   "AaveCollector" : "0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c",
   "IncentivesController" : "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5",
   "AaveGovernanceV2" : "0xEC568fffba86c094cf06b22134B23074DFE2252c",
-  "ExecutorShort" : "0xee56e2b3d491590b5b31738cc34d5232f378a8d5#readContract",
-  "ExecutorLong" : "0x61910ecd7e8e942136ce7fe7943f956cea1cc2f7",
-  "EcosystemReserve" : "0x25f2226b597e8f9514b3f68f00f494cf4f286491"
+  "ExecutorShort" : "0xEE56e2B3D491590B5b31738cC34d5232F378a8D5",
+  "ExecutorLong" : "0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7",
+  "EcosystemReserve" : "0x25F2226B597E8F9514B3F68F00f494cF4f286491"
 }

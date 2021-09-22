@@ -1,65 +1,65 @@
 {
-  "LendingPoolAddressesProvider" : [
-    "MarketIdSet(string)",
-    "LendingPoolUpdated(address)",
-    "ConfigurationAdminUpdated(address)",
-    "EmergencyAdminUpdated(address)",
-    "LendingPoolConfiguratorUpdated(address)",
-    "LendingPoolCollateralManagerUpdated(address)",
-    "PriceOracleUpdated(address)",
-    "LendingRateOracleUpdated(address)",
-    "ProxyCreated(bytes32,address)",
-    "AddressSet(bytes32,address,bool)",
-    "OwnershipTransferred(address,address)",
-    "Upgraded(address)"
-    ],
-  "LendingPoolAddressesProviderRegistry" : [
-    "AddressProviderRegistered(address)",
-    "AddressProviderUnregistered(address)",
-    "OwnershipTransferred(address,address)"
-    ],
-  "LendingPoolConfigurator" : [
-    "Upgraded(address)"
-    ],
-  "LendingRateOracle" : [
-    "OwnershipTransferred(address,address)"
-    ],
-  "PriceOracle" : [
-   "OwnershipTransferred(address,address)",
-   "WethSet(address)",
-   "AssetSourceUpdated(address,address)",
-   "FallbackOracleUpdated(address)"
-    ],
-  "WETHGateway" : [
-   "OwnershipTransferred(address,address)"
-    ],
-  "AaveGovernanceV2" : [
-    "ExecutorAuthorized(address)",
-    "ExecutorUnauthorized(address)",
-    "GoveranceStrategyChanged(address,address)",
-    "OwnershipTransferred(address,address)",
-    "ProposalCanceled(uint256)",
-    "ProposalCreated(uint256,address,address,address[],uint256[],string[],bytes[],bool[],uint256,uint256,address,bytes32)",
-    "ProposalExecuted(uint256,address)",
-    "ProposalQueued(uint256,uint256,address)",
-    "VoteEmitted(uint256,address,bool,uint256)",
-    "VotingDelayChanged(uint256,address)"
-    ],
-  "ExecutorShort" : [
-    "CancelledAction(bytes32,address,uint256,string,bytes,uint256,bool)",
-    "ExecutedAction(bytes32,address,uint256,string,bytes,uint256,bool,bytes)",
-    "NewAdmin(address)",
-    "NewDelay(uint256)",
-    "NewPendingAdmin(address)"
-    ],
-  "ExecutorLong" : [
-    "CancelledAction(bytes32,address,uint256,string,bytes,uint256,bool)",
-    "ExecutedAction(bytes32,address,uint256,string,bytes,uint256,bool,bytes)",
-    "NewAdmin(address)",
-    "NewDelay(uint256)",
-    "NewPendingAdmin(address)"
-    ],
-  "EcosystemReserve" : [
-    "NewFundsAdmin(address)"
-    ]
-  }
+	"LendingPoolAddressesProvider" : [
+		"MarketIdSet(string)",
+		"LendingPoolUpdated(address)",
+		"ConfigurationAdminUpdated(address)",
+		"EmergencyAdminUpdated(address)",
+		"LendingPoolConfiguratorUpdated(address)",
+		"LendingPoolCollateralManagerUpdated(address)",
+		"PriceOracleUpdated(address)",
+		"LendingRateOracleUpdated(address)",
+		"ProxyCreated(bytes32,address)",
+		"AddressSet(bytes32,address,bool)",
+		"OwnershipTransferred(address,address)",
+		"Upgraded(address)"
+	],
+	"LendingPoolAddressesProviderRegistry" : [
+		"AddressProviderRegistered(address)",
+	"AddressProviderUnregistered(address)",
+	"OwnershipTransferred(address,address)"
+	],
+	"LendingPoolConfigurator" : [
+		"Upgraded(address)"
+	],
+	"LendingRateOracle" : [
+		"OwnershipTransferred(address,address)"
+	],
+	"PriceOracle" : [
+		"OwnershipTransferred(address,address)",
+	"WethSet(address)",
+	"AssetSourceUpdated(address,address)",
+	"FallbackOracleUpdated(address)"
+	],
+	"WETHGateway" : [
+		"OwnershipTransferred(address,address)"
+	],
+	"AaveGovernanceV2" : [
+		"ExecutorAuthorized(address)",
+	"ExecutorUnauthorized(address)",
+	"GoveranceStrategyChanged(address,address)",
+	"OwnershipTransferred(address,address)",
+	"ProposalCanceled(uint256)",
+	"ProposalCreated(uint256,address,address,address[],uint256[],string[],bytes[],bool[],uint256,uint256,address,bytes32)",
+	"ProposalExecuted(uint256,address)",
+	"ProposalQueued(uint256,uint256,address)",
+	"VoteEmitted(uint256,address,bool,uint256)",
+	"VotingDelayChanged(uint256,address)"
+	],
+	"ExecutorShort" : [
+		"CancelledAction(bytes32,address,uint256,string,bytes,uint256,bool)",
+	"ExecutedAction(bytes32,address,uint256,string,bytes,uint256,bool,bytes)",
+	"NewAdmin(address)",
+	"NewDelay(uint256)",
+	"NewPendingAdmin(address)"
+	],
+	"ExecutorLong" : [
+		"CancelledAction(bytes32,address,uint256,string,bytes,uint256,bool)",
+	"ExecutedAction(bytes32,address,uint256,string,bytes,uint256,bool,bytes)",
+	"NewAdmin(address)",
+	"NewDelay(uint256)",
+	"NewPendingAdmin(address)"
+	],
+	"EcosystemReserve" : [
+		"NewFundsAdmin(address)"
+	]
+}
