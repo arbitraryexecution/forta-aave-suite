@@ -44,6 +44,11 @@ const API_KEY = process.env.ETHERSCAN_API_KEY; // free tier is limited to 5 call
 // set up provider for contract interaction
 const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 
+// set up the contract object for interacting with the protocolDataProvider contract
+const protocolDataProviderContract = new ethers.Contract(
+  protocolDataProviderAddress, protocolDataProviderAbi, provider,
+);
+
 // print log messages only if DEBUG=true
 function log(message) {
   if (DEBUG) {
@@ -62,16 +67,12 @@ function getContractAge(currentTime, creationTime) {
 // the mainnet.json file online (https://aave.github.io/aave-addresses/mainnet.json) appears to
 // be out of sync with the data returned by getAllATokens(), so we take the contract as the source
 // of truth
-async function getATokenAddresses() {
-  const protocolDataProviderContract = new ethers.Contract(
-    protocolDataProviderAddress, protocolDataProviderAbi, provider,
-  );
+async function getATokenAddresses(protocolDataProviderContract) {
   const aTokens = await protocolDataProviderContract.getAllATokens();
   const tokenAddresses = [];
   aTokens.forEach((aToken) => {
     tokenAddresses.push(aToken.tokenAddress.toLowerCase());
   });
-
   return tokenAddresses;
 }
 
@@ -91,7 +92,7 @@ function createAlert(address, contractAge) {
   });
 }
 
-function provideHandleTransaction(ethersProvider) {
+function provideHandleTransaction(ethersProvider, protocolDataProvider) {
   return async function handleTransaction(txEvent) {
     const findings = [];
 
@@ -105,7 +106,7 @@ function provideHandleTransaction(ethersProvider) {
     // these addresses will be seen interacting with the lending pool in transactions,
     // so we filter them out later
     if (aTokenAddresses === undefined) {
-      aTokenAddresses = await getATokenAddresses();
+      aTokenAddresses = await getATokenAddresses(protocolDataProvider);
     }
 
     // get all addresses involved with this transaction
@@ -193,7 +194,7 @@ function provideHandleTransaction(ethersProvider) {
 
 module.exports = {
   provideHandleTransaction,
-  handleTransaction: provideHandleTransaction(provider),
+  handleTransaction: provideHandleTransaction(provider, protocolDataProviderContract),
   getContractAge,
   createAlert,
   lendingPoolAddress,
