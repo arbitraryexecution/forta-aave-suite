@@ -12,6 +12,10 @@
     "numStds" : 3,
     "minElements": 40
   },
+  "compareOracleToFallback": {
+    "aaveOraclePercentErrorThreshold": 2,
+    "alertMinimumIntervalSeconds": 86400
+  },
   "checkReserveUpdateFrequency" : {
     "oracleAgeThresholdSeconds": 86400
   },

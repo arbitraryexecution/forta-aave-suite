@@ -1,7 +1,22 @@
 // required libraries
 const BigNumber = require('bignumber.js');
 const { createBlockEvent } = require('forta-agent');
-const { provideHandleBlock, createAlert } = require('./check-reserve-update-frequency');
+
+// mock the initializeTokensContracts async function before importing the agent module
+// the agent module will then receive our mocked version of the function
+// if we did not perform this step, we would (intermittently) receive errors during test execution:
+//   'Jest did not exit one second after the test run has completed.'
+// due to the fact that the initializeTokensContracts function is executed whenever any part of the
+// agent module is imported
+// therefore, we must mock that function before the agent module is imported, thereby giving our
+// mocked version of the function to all subsquent imports that use it
+jest.mock('./agent-setup', () => ({
+  ...jest.requireActual('./agent-setup'),
+  initializeTokensContracts: jest.fn().mockResolvedValue(),
+}));
+
+const { createAlert } = require('./agent-setup');
+const { provideHandleBlock } = require('./check-reserve-update-frequency');
 
 describe('AAVE reserve price oracle agent', () => {
   let handleBlock;
