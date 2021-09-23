@@ -10,6 +10,9 @@ const {
 // local definitions
 const { handleTransaction, addressList } = require('./address-watch');
 
+// load configuration data from agent config file
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+
 /**
  * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
  */
@@ -57,7 +60,7 @@ describe('watch admin addresses', () => {
             from,
             hash,
           },
-          everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+          everestId: AAVE_EVEREST_ID,
         }),
       ]);
     });
