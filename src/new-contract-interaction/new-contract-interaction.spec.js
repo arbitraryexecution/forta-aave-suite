@@ -57,10 +57,25 @@ describe('mock ethers getCode request', () => {
 
 describe('new contract interaction monitoring', () => {
   let handleTransaction = null;
+  let mockData;
+  let mockProtocolDataProvider;
 
   // pass in mockEthers as the provider for handleTransaction() to use
   beforeAll(() => {
-    handleTransaction = agent.provideHandleTransaction(mockEthersProvider);
+    mockData = [
+      { symbol: 'aUSDT', tokenAddress: '0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811' },
+      { symbol: 'aWBTC', tokenAddress: '0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656' },
+      { symbol: 'aAAVE', tokenAddress: '0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B' },
+    ];
+
+    mockProtocolDataProvider = {
+      getAllATokens: jest.fn(() => Promise.resolve(mockData)),
+    };
+
+    handleTransaction = agent.provideHandleTransaction(
+      mockEthersProvider,
+      mockProtocolDataProvider,
+    );
   });
 
   // reset function call count after each test
