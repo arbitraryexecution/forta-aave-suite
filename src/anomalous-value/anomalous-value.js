@@ -61,7 +61,7 @@ async function handleTransaction(txEvent) {
       const average = rollingEventData[log.args.reserve].getAverage();
       const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
 
-      // limit is set from agent-config.json file 
+      // limit is set from agent-config.json file
       const limit = average.plus(standardDeviation.times(anomalousValue.standardDeviations));
       const delta = amount.minus(average).absoluteValue();
 

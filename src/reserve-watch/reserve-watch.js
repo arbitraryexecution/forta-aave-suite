@@ -6,7 +6,7 @@ const ethers = require('ethers');
 const RollingMath = require('rolling-math');
 
 const contractAddresses = require('../../contract-addresses.json');
-const { 
+const {
   reserveWatch: config,
   aaveEverestId: AAVE_EVEREST_ID,
 } = require('../../agent-config.json');
