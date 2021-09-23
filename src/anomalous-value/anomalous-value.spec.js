@@ -13,6 +13,8 @@ const { LendingPool: address } = require('../../contract-addresses.json');
 const { abi } = require('../../abi/ILendingPool.json');
 const { handleTransaction } = require('./anomalous-value');
 
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+
 // create interface
 const iface = new ethers.utils.Interface(abi);
 
@@ -166,7 +168,7 @@ describe('aave anomalous value agent', () => {
         alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
         severity: FindingSeverity.Medium,
         type: FindingType.Suspicious,
-        everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+        everestId: AAVE_EVEREST_ID,
         metadata: JSON.stringify(parsedLog),
       });
 

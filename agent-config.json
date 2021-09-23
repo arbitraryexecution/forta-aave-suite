@@ -4,8 +4,8 @@
     "numStds": 2,
     "minElements": 40
   },
-  "anomalous-value" : {
-    "standardDeviation" : 3
+  "anomalousValue" : {
+    "standardDeviations" : 3
   },
   "reserveWatch" : {
     "windowSize": 100,

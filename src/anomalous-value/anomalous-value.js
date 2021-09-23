@@ -7,6 +7,8 @@ const RollingMath = require('rolling-math');
 const { LendingPool: address } = require('../../contract-addresses.json');
 const { abi } = require('../../abi/ILendingPool.json');
 
+const { anomalousValue, aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+
 // create ethers interface object
 const iface = new ethers.utils.Interface(abi);
 
@@ -24,7 +26,7 @@ function createAlert(log) {
     alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
-    everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+    everestId: AAVE_EVEREST_ID,
     metadata: JSON.stringify(log),
   });
 }
@@ -59,8 +61,8 @@ async function handleTransaction(txEvent) {
       const average = rollingEventData[log.args.reserve].getAverage();
       const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
 
-      // limit is 3 standard deviations
-      const limit = average.plus(standardDeviation.times(3));
+      // limit is set from agent-config.json file 
+      const limit = average.plus(standardDeviation.times(anomalousValue.standardDeviations));
       const delta = amount.minus(average).absoluteValue();
 
       // if instance is outside the standard deviation, report

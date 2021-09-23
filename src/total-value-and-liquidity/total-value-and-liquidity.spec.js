@@ -123,11 +123,11 @@ describe('liquidity and total value locked agent tests', () => {
       expect(mockRollingMath).toBeCalledWith(mockConfig.windowSize);
     });
 
-    it('standard devation limit', async () => {
+    it('standard deviation limit', async () => {
       // run a block to initialize our data
       await handleTransaction({ blockNumber: 0 });
 
-      // set standard devation limit to a unique and non default number
+      // set standard deviation limit to a unique and non default number
       mockConfig.numStds = 42;
 
       // make our math module return more than minimum required elements
@@ -143,14 +143,14 @@ describe('liquidity and total value locked agent tests', () => {
         jest.fn(() => new BigNumber(1)),
       );
 
-      // ensure observations below standard devation we do not alert
+      // ensure observations below standard deviation we do not alert
       mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10);
 
       // since we are equal to but not passing the limit we should not get back
       // any findings
       expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
 
-      // make observations larger than our standard devation limit
+      // make observations larger than our standard deviation limit
       mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10 + 1);
 
       // since we are outside of the limit, expect a finding
@@ -162,7 +162,7 @@ describe('liquidity and total value locked agent tests', () => {
       await handleTransaction({ blockNumber: 0 });
 
       // set up our observations to be outside of standard deviation range
-      // since default average and standard devation returned is 0, any number will suffice
+      // since default average and standard deviation returned is 0, any number will suffice
       mockData.totalStableDebt = ethers.BigNumber.from(100);
 
       // set number of required elements to an arbitrary value
@@ -186,7 +186,7 @@ describe('liquidity and total value locked agent tests', () => {
       // run a block to initialize our data
       await handleTransaction({ blockNumber: 0 });
 
-      // set our standard devation to be really large so it won't alert
+      // set our standard deviation to be really large so it won't alert
       mockRollingMathFuncs.getStandardDeviation.mockImplementation(
         jest.fn(() => new BigNumber(9001)),
       );
@@ -199,7 +199,7 @@ describe('liquidity and total value locked agent tests', () => {
       // set large number of standard deviations to make the limit large
       mockConfig.numStds = 10;
 
-      // expect a default finding of 0 to not be past the standard devation
+      // expect a default finding of 0 to not be past the standard deviation
       expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
     });
 
@@ -309,7 +309,7 @@ describe('liquidity and total value locked agent tests', () => {
       // intialize our data fields
       await handleTransaction({ blockNumber: 0 });
 
-      // default standard devation is 0 and average is 0, if we return anything it should alert
+      // default standard deviation is 0 and average is 0, if we return anything it should alert
       mockData.totalStableDebt = ethers.BigNumber.from(9001);
 
       // return large amount of elements

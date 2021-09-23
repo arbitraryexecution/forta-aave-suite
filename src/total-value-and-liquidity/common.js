@@ -1,5 +1,5 @@
 const { Finding, FindingSeverity, FindingType } = require('forta-agent');
-const { aaveEverestId } = require('../../agent-config.json');
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
 
 // data fields the agent is interested in
 const dataFields = [
@@ -18,7 +18,7 @@ function createAlert(data) {
     alertId: 'AE-AAVE-TVL',
     severity: FindingSeverity.High,
     type: FindingType.Suspicious,
-    everestId: aaveEverestId,
+    everestId: AAVE_EVEREST_ID,
     metadata: JSON.stringify(data),
   });
 }
