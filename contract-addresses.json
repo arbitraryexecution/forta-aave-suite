@@ -11,5 +11,9 @@
   "ProtocolDataProvider" : "0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d",
   "WETHGateway" : "0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04",
   "AaveCollector" : "0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c",
-  "IncentivesController" : "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5"
+  "IncentivesController" : "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5",
+  "AaveGovernanceV2" : "0xEC568fffba86c094cf06b22134B23074DFE2252c",
+  "ExecutorShort" : "0xEE56e2B3D491590B5b31738cC34d5232F378a8D5",
+  "ExecutorLong" : "0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7",
+  "EcosystemReserve" : "0x25F2226B597E8F9514B3F68F00f494cF4f286491"
 }
