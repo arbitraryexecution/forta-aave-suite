@@ -13,7 +13,7 @@ const { abi: protocolDataProviderAbi } = require('../../abi/AaveProtocolDataProv
 const { abi: aaveOracleAbi } = require('../../abi/AaveOracle.json');
 const { abi: priceOracleGetterAbi } = require('../../abi/IPriceOracleGetter.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../../abi/ILendingPoolAddressesProvider.json');
-const { aaveEverestId } = require('../../agent-config.json');
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
 
 // set up the an ethers provider
 // do not use ethers.providers.WebSocketProvider in production (there is no support)
@@ -35,7 +35,7 @@ function createAlert(reserveToken, tokenPrice, tokenPriceFallback, percentError,
     alertId: 'AE-AAVE-FALLBACK-ORACLE-DISPARITY',
     severity: FindingSeverity.High,
     type: FindingType.Degraded,
-    everestId: aaveEverestId,
+    everestId: AAVE_EVEREST_ID,
     metadata: {
       symbol: reserveToken.symbol,
       tokenAddress: reserveToken.tokenAddress,

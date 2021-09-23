@@ -4,6 +4,8 @@ const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 const contractAddresses = require('../../contract-addresses.json');
 const adminEvents = require('./admin-events.json');
 
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+
 // get contract names for mapping to events
 let contractNames = Object.keys(contractAddresses);
 
@@ -47,7 +49,7 @@ async function handleTransaction(txEvent) {
               contractAddress,
               eventName,
             },
-            everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+            everestId: AAVE_EVEREST_ID,
           }),
         );
       }

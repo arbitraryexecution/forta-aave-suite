@@ -13,6 +13,8 @@ const { handleTransaction } = require('./admin-events');
 const lendingPoolAddressProvider = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5';
 const configurationAdminUpdatedTopic = '0xc20a317155a9e7d84e06b716b4b355d47742ab9f8c5d630e7f556553f582430d';
 
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+
 /**
  * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
  */
@@ -113,7 +115,7 @@ describe('admin event monitoring', () => {
             contractAddress,
             eventName,
           },
-          everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+          everestId: AAVE_EVEREST_ID,
         }),
       ]);
     });

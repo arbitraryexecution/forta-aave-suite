@@ -3,6 +3,9 @@ const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 // load config file
 const addressList = require('./address-watch.json');
 
+// load configuration data from agent config file
+const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+
 // get list of addresses to watch
 const addresses = (Object.keys(addressList)).map((a) => a.toLowerCase());
 
@@ -24,7 +27,7 @@ async function handleTransaction(txEvent) {
             from,
             hash,
           },
-          everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+          everestId: AAVE_EVEREST_ID,
         }),
       );
     }

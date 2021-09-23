@@ -6,7 +6,10 @@ const ethers = require('ethers');
 const RollingMath = require('rolling-math');
 
 const contractAddresses = require('../../contract-addresses.json');
-const { reserveWatch: config } = require('../../agent-config.json');
+const {
+  reserveWatch: config,
+  aaveEverestId: AAVE_EVEREST_ID,
+} = require('../../agent-config.json');
 
 const { windowSize, numStds } = config;
 const {
@@ -31,7 +34,7 @@ function createAlert(asset, price) {
     alertId: 'AE-AAVE-RESERVE-PRICE',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
-    everestId: '0xa3d1fd85c0b62fa8bab6b818ffc96b5ec57602b6',
+    everestId: AAVE_EVEREST_ID,
     metadata: {
       symbol,
       price: ethers.utils.formatEther(price),
