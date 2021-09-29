@@ -11,7 +11,9 @@
     "range": "forta-agent run --range",
     "file": "forta-agent run --file",
     "publish": "forta-agent publish",
-    "test": "jest"
+    "test": "jest",
+    "test:docker": "docker build -t testbuild .",
+    "posttest:docker": "docker run testbuild"
   },
   "dependencies": {
     "axios": "^0.21.4",
