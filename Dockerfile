@@ -16,6 +16,5 @@ COPY agent-config.json ./
 COPY contract-addresses.json ./
 COPY ./abi ./abi
 COPY package*.json ./
-COPY forta.config.json ./
 RUN npm ci --production
 CMD [ "npm", "run", "start:prod" ]
