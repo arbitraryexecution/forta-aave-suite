@@ -11,7 +11,7 @@
     "range": "forta-agent run --range",
     "file": "forta-agent run --file",
     "publish": "forta-agent publish",
-    "test": "jest",
+    "test": "jest --detectOpenHandles",
     "test:docker": "docker build -t testbuild .",
     "posttest:docker": "docker run testbuild"
   },
@@ -20,7 +20,7 @@
     "bignumber.js": "^9.0.1",
     "dotenv": "^10.0.0",
     "ethers": "^5.4.6",
-    "forta-agent": "^0.0.11",
+    "forta-agent": "^0.0.29",
     "rolling-math": "^0.0.1"
   },
   "devDependencies": {

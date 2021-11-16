@@ -53,7 +53,7 @@ function mockLibrary(baseMockLibrary) {
 
 describe('liquidity and total value locked agent tests', () => {
   // handles to things we will use during testing
-  let handleTransaction;
+  let handleBlock;
   let mockLendingPool;
   let mockData;
   let mockDataProvider;
@@ -104,7 +104,7 @@ describe('liquidity and total value locked agent tests', () => {
 
     mockConfig = { ...Config };
 
-    handleTransaction = provideHandleBlock(
+    handleBlock = provideHandleBlock(
       RollingMath, mockConfig, mockLendingPool, mockDataProvider,
     );
   });
@@ -115,7 +115,7 @@ describe('liquidity and total value locked agent tests', () => {
       mockConfig.windowSize = 389003;
 
       // run a block through
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // we should have a single instance of our rolling math library for each
       // data field, all with our custom size
@@ -125,7 +125,7 @@ describe('liquidity and total value locked agent tests', () => {
 
     it('standard deviation limit', async () => {
       // run a block to initialize our data
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // set standard deviation limit to a unique and non default number
       mockConfig.numStds = 42;
@@ -148,18 +148,18 @@ describe('liquidity and total value locked agent tests', () => {
 
       // since we are equal to but not passing the limit we should not get back
       // any findings
-      expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
+      expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
 
       // make observations larger than our standard deviation limit
       mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10 + 1);
 
       // since we are outside of the limit, expect a finding
-      expect(await handleTransaction({ blockNumber: 0 })).not.toStrictEqual([]);
+      expect(await handleBlock({ blockNumber: 0 })).not.toStrictEqual([]);
     });
 
     it('minimum elements before triggering', async () => {
       // run a block to initialize our data
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // set up our observations to be outside of standard deviation range
       // since default average and standard deviation returned is 0, any number will suffice
@@ -169,7 +169,7 @@ describe('liquidity and total value locked agent tests', () => {
       mockConfig.minElements = 1879;
 
       // since default getNumElements returns 0, we should not expect a finding
-      expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
+      expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
 
       // make our math library return a larger number of elements than required
       mockRollingMathFuncs.getNumElements.mockImplementation(
@@ -177,14 +177,14 @@ describe('liquidity and total value locked agent tests', () => {
       );
 
       // now that we report a substantial number of elements, expect a finding
-      expect(await handleTransaction({ blockNumber: 0 })).not.toStrictEqual([]);
+      expect(await handleBlock({ blockNumber: 0 })).not.toStrictEqual([]);
     });
   });
 
   describe('doesn\'t alert when', () => {
     it('observation isn\'t outside standard deviation limit', async () => {
       // run a block to initialize our data
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // set our standard deviation to be really large so it won't alert
       mockRollingMathFuncs.getStandardDeviation.mockImplementation(
@@ -200,12 +200,12 @@ describe('liquidity and total value locked agent tests', () => {
       mockConfig.numStds = 10;
 
       // expect a default finding of 0 to not be past the standard deviation
-      expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
+      expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
     });
 
     it('there aren\'t enough previously recorded elements', async () => {
       // run a block to initialize our data
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // set our standard deviation small so it will alert
       mockRollingMathFuncs.getStandardDeviation.mockImplementation(
@@ -225,20 +225,20 @@ describe('liquidity and total value locked agent tests', () => {
       );
 
       // expect no finding because insufficient number of elements
-      expect(await handleTransaction({ blockNumber: 0 })).toStrictEqual([]);
+      expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
     });
   });
 
   describe('whenever you pass a block it', () => {
     it('will add the observation into the dataset', async () => {
       // run a block to initialize our data
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // make our observation identifiable
       mockData.totalStableDebt = ethers.BigNumber.from(9001);
 
       // run another block to add our observation into our dataset
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       expect(mockRollingMathFuncs.addElement).toBeCalledWith(
         new BigNumber(mockData.totalStableDebt.toHexString()),
@@ -248,7 +248,7 @@ describe('liquidity and total value locked agent tests', () => {
       mockData.totalStableDebt = ethers.BigNumber.from(1337);
 
       // run another block to add our observation into our dataset
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       expect(mockRollingMathFuncs.addElement).toBeCalledWith(
         new BigNumber(mockData.totalStableDebt.toHexString()),
@@ -257,7 +257,7 @@ describe('liquidity and total value locked agent tests', () => {
 
     it('will create a new data set if it hasn\'t seen the address before', async () => {
       // run a block to initialize our data
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // a new dataset should have been created
       expect(mockRollingMath).toBeCalledTimes(dataFields.length);
@@ -268,7 +268,7 @@ describe('liquidity and total value locked agent tests', () => {
       ));
 
       // run a block to initialize the new data fields
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // a new dataset should have been created
       expect(mockRollingMath).toBeCalledTimes(dataFields.length * 2);
@@ -276,7 +276,7 @@ describe('liquidity and total value locked agent tests', () => {
 
     it('will call provider functions with correct block numbers and addresses', async () => {
       // call handle transaction with a specific block
-      await handleTransaction({ blockNumber: 9001 });
+      await handleBlock({ blockNumber: 9001 });
 
       // ensure that the last calls to our mock provider have the correct block number
       expect(mockLendingPool.getReservesList).toBeCalledWith(
@@ -292,7 +292,7 @@ describe('liquidity and total value locked agent tests', () => {
       ));
 
       // make another call with a new block number
-      await handleTransaction({ blockNumber: 1337 });
+      await handleBlock({ blockNumber: 1337 });
 
       // ensure that the last calls to our mock provider have the correct block number
       expect(mockLendingPool.getReservesList).toBeCalledWith(
@@ -307,7 +307,7 @@ describe('liquidity and total value locked agent tests', () => {
   describe('alerts when', () => {
     it('recieves an event that is outside the std limit and has adequate previous data', async () => {
       // intialize our data fields
-      await handleTransaction({ blockNumber: 0 });
+      await handleBlock({ blockNumber: 0 });
 
       // default standard deviation is 0 and average is 0, if we return anything it should alert
       mockData.totalStableDebt = ethers.BigNumber.from(9001);
@@ -325,7 +325,7 @@ describe('liquidity and total value locked agent tests', () => {
       }));
 
       // expect findings to be equal
-      expect(alerts).toStrictEqual(await handleTransaction({ blockNumber: 0 }));
+      expect(alerts).toStrictEqual(await handleBlock({ blockNumber: 0 }));
     });
   });
 });
