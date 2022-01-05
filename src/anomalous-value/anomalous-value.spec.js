@@ -13,7 +13,10 @@ const { LendingPool: address } = require('../../contract-addresses.json');
 const { abi } = require('../../abi/ILendingPool.json');
 const { handleTransaction } = require('./anomalous-value');
 
-const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
+const {
+  anomalousValue: config,
+  aaveEverestId: AAVE_EVEREST_ID,
+} = require('../../agent-config.json');
 
 // create interface
 const iface = new ethers.utils.Interface(abi);
@@ -113,7 +116,7 @@ function createReceipt(logs, contractAddress) {
  * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
  */
 function createTxEvent(receipt, addresses) {
-  return new TransactionEvent(null, null, null, receipt, [], addresses, null);
+  return new TransactionEvent(null, null, { hash: '0xTEST' }, receipt, [], addresses, null);
 }
 
 // tests
@@ -144,12 +147,15 @@ describe('aave anomalous value agent', () => {
         { address });
 
       // build txEvent
-      const receipt = createReceipt([log, log, log], zeroAddress);
-      const txEvent = createTxEvent(receipt, zeroAddress);
+      const receipt = createReceipt([log, log, log], address);
+      const txEvent = createTxEvent(receipt, address);
 
       // run agent with txEvent, should update averages
-      const finding = await handleTransaction(txEvent);
-      expect(finding).toStrictEqual([]);
+      for (let i = 0; i < config.windowSize; i++) {
+        // eslint-disable-next-line no-await-in-loop
+        const finding = await handleTransaction(txEvent);
+        expect(finding).toStrictEqual([]);
+      }
 
       // create anomalous log
       const anomalousLog = createLog(iface.getEvent('Borrow'),
@@ -157,11 +163,10 @@ describe('aave anomalous value agent', () => {
         { address });
 
       // create anomalous txEvent
-      const anomalousReceipt = createReceipt([anomalousLog], zeroAddress);
-      const anomalousTxEvent = createTxEvent(anomalousReceipt, zeroAddress);
+      const anomalousReceipt = createReceipt([anomalousLog], address);
+      const anomalousTxEvent = createTxEvent(anomalousReceipt, address);
 
       // create expected finding
-      const parsedLog = iface.parseLog(anomalousLog);
       const expectedFinding = Finding.fromObject({
         name: 'High AAVE Borrow Amount',
         description: `Borrow: ${largeAmount}\nToken: ${tokenA}`,
@@ -169,14 +174,16 @@ describe('aave anomalous value agent', () => {
         severity: FindingSeverity.Medium,
         type: FindingType.Suspicious,
         everestId: AAVE_EVEREST_ID,
-        metadata: JSON.stringify(parsedLog),
+        metadata: {
+          txHash: '0xTEST',
+        },
       });
 
       // run test
       const anomalousFinding = await handleTransaction(anomalousTxEvent);
 
       // assertions
-      expect(anomalousFinding[0]).toStrictEqual(expectedFinding);
+      expect(anomalousFinding).toStrictEqual([expectedFinding]);
     });
   });
 });
