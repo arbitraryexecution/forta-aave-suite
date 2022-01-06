@@ -24,16 +24,18 @@ const eventFragments = [
 const rollingEventData = {};
 
 // helper function to create alerts
-function createAlert(log, txEvent) {
+function createAlert(log) {
   return Finding.fromObject({
     name: `High AAVE ${log.name} Amount`,
-    description: `${log.name}: ${log.args.amount.toString()}\nToken: ${log.args.reserve}`,
+    description: `A transaction utilized a large amount of ${log.args.reserve}`,
     alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
     everestId: AAVE_EVEREST_ID,
     metadata: {
-      txHash: txEvent.hash,
+      event: log.name,
+      amount: log.args.amount.toString(),
+      token: log.args.reserve,
     },
   });
 }
@@ -65,7 +67,7 @@ async function handleTransaction(txEvent) {
 
       // if instance is outside the standard deviation, report
       if (delta.isGreaterThan(limit)) {
-        findings.push(createAlert(log, txEvent));
+        findings.push(createAlert(log));
       }
     }
 

@@ -116,7 +116,7 @@ function createReceipt(logs, contractAddress) {
  * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
  */
 function createTxEvent(receipt, addresses) {
-  return new TransactionEvent(null, null, { hash: '0xTEST' }, receipt, [], addresses, null);
+  return new TransactionEvent(null, null, null, receipt, [], addresses, null);
 }
 
 // tests
@@ -169,13 +169,15 @@ describe('aave anomalous value agent', () => {
       // create expected finding
       const expectedFinding = Finding.fromObject({
         name: 'High AAVE Borrow Amount',
-        description: `Borrow: ${largeAmount}\nToken: ${tokenA}`,
+        description: `A transaction utilized a large amount of ${tokenA}`,
         alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
         severity: FindingSeverity.Medium,
         type: FindingType.Suspicious,
         everestId: AAVE_EVEREST_ID,
         metadata: {
-          txHash: '0xTEST',
+          event: 'Borrow',
+          amount: `${largeAmount}`,
+          token: tokenA,
         },
       });
 
