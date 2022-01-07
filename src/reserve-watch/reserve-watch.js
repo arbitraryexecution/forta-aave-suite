@@ -23,6 +23,8 @@ const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
 const ProtocolDataProvider = new ethers.Contract(dataProvider, dataAbi, provider);
 const PriceOracle = new ethers.Contract(priceOracleAddress, priceOracleAbi, provider);
 
+// npx forta-agent run --range 13940731..13940832
+
 let rollingReservePrices = {};
 
 // helper function to create alerts
@@ -58,10 +60,14 @@ function provideHandleBlock(RollingMathLib, protocolDataProvider, priceOracle) {
       const priceWei = await priceOracle.getAssetPrice(asset.tokenAddress, { ...override });
       // convert the amount to a bignum
       const amount = new BigNumber(priceWei.toString());
+
       // if we haven't seen this reserve before, initialize it
       if (!rollingReservePrices[asset.symbol]) {
         rollingReservePrices[asset.symbol] = new RollingMathLib(windowSize);
-      } else {
+      }
+
+      // only process data for alerts if we have seen a significant number of blocks
+      if (rollingReservePrices[asset.symbol].getNumElements() >= config.windowSize) {
         const average = rollingReservePrices[asset.symbol].getAverage();
         const standardDeviation = rollingReservePrices[asset.symbol].getStandardDeviation();
 

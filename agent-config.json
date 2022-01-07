@@ -5,12 +5,12 @@
     "minElements": 40
   },
   "anomalousValue" : {
+    "windowSize": 10,
     "standardDeviations" : 3
   },
   "reserveWatch" : {
-    "windowSize": 100,
-    "numStds" : 3,
-    "minElements": 40
+    "windowSize": 10,
+    "numStds" : 3
   },
   "compareOracleToFallback": {
     "aaveOraclePercentErrorThreshold": 2,

@@ -24,7 +24,7 @@
     "bignumber.js": "^9.0.1",
     "dotenv": "^10.0.0",
     "ethers": "^5.4.6",
-    "forta-agent": "^0.0.29",
+    "forta-agent": "^0.0.33",
     "rolling-math": "^0.0.1"
   },
   "devDependencies": {

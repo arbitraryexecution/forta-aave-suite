@@ -133,11 +133,11 @@ function provideHandleTransaction(ethersProvider, protocolDataProvider) {
         const codePromise = ethersProvider.getCode(address);
 
         // associate each address with the code that was returned
-        codePromise.then((result) => contractCode.push({ address, code: result }));
-
-        // to prevent Promise.all() from rejecting, catch failed promises and set the return
-        // value to undefined
-        contractCodePromises.push(codePromise.catch(() => undefined));
+        codePromise
+          .then((result) => contractCode.push({ address, code: result }))
+          // to prevent Promise.all() from rejecting, catch failed promises and set the return
+          // value to undefined
+          .catch(() => contractCodePromises.push(undefined));
       });
 
       // wait for the promises to be settled
@@ -155,11 +155,11 @@ function provideHandleTransaction(ethersProvider, protocolDataProvider) {
         const txlistPromise = axios.get(BASE_URL + item.address + OPTIONS + API_KEY);
 
         // associate each address with the transaction list that was returned
-        txlistPromise.then((result) => txData.push({ address: item.address, response: result }));
-
-        // to prevent Promise.all() from rejecting, catch failed promises and set the return
-        // value to undefined
-        etherscanTxlistPromises.push(txlistPromise.catch(() => undefined));
+        txlistPromise
+          .then((result) => txData.push({ address: item.address, response: result }))
+          // to prevent Promise.all() from rejecting, catch failed promises and set the return
+          // value to undefined
+          .catch(() => etherscanTxlistPromises.push(undefined));
       });
 
       // wait for the promises to be settled

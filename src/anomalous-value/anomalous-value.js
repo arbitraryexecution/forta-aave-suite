@@ -13,7 +13,12 @@ const { anomalousValue, aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-
 const iface = new ethers.utils.Interface(abi);
 
 // events we are interested in
-const eventNames = ['Borrow', 'Deposit', 'Repay', 'Withdraw'];
+const eventFragments = [
+  iface.getEvent('Borrow'),
+  iface.getEvent('Deposit'),
+  iface.getEvent('Repay'),
+  iface.getEvent('Withdraw'),
+];
 
 // create rolling math object structure
 const rollingEventData = {};
@@ -22,31 +27,23 @@ const rollingEventData = {};
 function createAlert(log) {
   return Finding.fromObject({
     name: `High AAVE ${log.name} Amount`,
-    description: `${log.name}: ${log.args.amount.toString()}\nToken: ${log.args.reserve}`,
+    description: `A transaction utilized a large amount of ${log.args.reserve}`,
     alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
     severity: FindingSeverity.Medium,
     type: FindingType.Suspicious,
     everestId: AAVE_EVEREST_ID,
-    metadata: JSON.stringify(log),
+    metadata: {
+      event: log.name,
+      amount: log.args.amount.toString(),
+      token: log.args.reserve,
+    },
   });
-}
-
-function filterAndParseLogs(logs) {
-  // collect logs only from the Aave contract
-  const aaveLogs = logs.filter((log) => log.address === address);
-
-  // decode logs and filter on the ones we are interested in
-  const parse = (log) => iface.parseLog(log);
-  const filter = (log) => eventNames.indexOf(log.name) !== -1;
-  const parsedLogs = aaveLogs.map(parse).filter(filter);
-
-  return parsedLogs;
 }
 
 async function handleTransaction(txEvent) {
   const findings = [];
 
-  const parsedLogs = filterAndParseLogs(txEvent.logs);
+  const parsedLogs = txEvent.filterLog(eventFragments, address);
 
   // loop over each eventLog, checking for anomalous value
   parsedLogs.forEach((log) => {
@@ -55,14 +52,17 @@ async function handleTransaction(txEvent) {
 
     // if we haven't seen this reserve yet, initialize it
     if (!rollingEventData[log.args.reserve]) {
-      rollingEventData[log.args.reserve] = new RollingMath(100);
-    } else {
+      rollingEventData[log.args.reserve] = new RollingMath(anomalousValue.windowSize);
+    }
+
+    // only process data for alerts if we have seen a significant number of blocks
+    if (rollingEventData[log.args.reserve].getNumElements() >= anomalousValue.windowSize) {
       // if we have seen this before, check for anomalous value
       const average = rollingEventData[log.args.reserve].getAverage();
       const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
 
       // limit is set from agent-config.json file
-      const limit = average.plus(standardDeviation.times(anomalousValue.standardDeviations));
+      const limit = standardDeviation.times(anomalousValue.standardDeviations);
       const delta = amount.minus(average).absoluteValue();
 
       // if instance is outside the standard deviation, report
@@ -74,11 +74,11 @@ async function handleTransaction(txEvent) {
     // update rolling data
     rollingEventData[log.args.reserve].addElement(amount);
   });
+
   return findings;
 }
 
 // exports
 module.exports = {
-  filterAndParseLogs,
   handleTransaction,
 };

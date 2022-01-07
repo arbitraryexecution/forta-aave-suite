@@ -7,7 +7,7 @@ const addressList = require('./address-watch.json');
 const { aaveEverestId: AAVE_EVEREST_ID } = require('../../agent-config.json');
 
 // get list of addresses to watch
-const addresses = (Object.keys(addressList)).map((a) => a.toLowerCase());
+const addresses = Object.keys(addressList);
 
 async function handleTransaction(txEvent) {
   const findings = [];
@@ -15,7 +15,7 @@ async function handleTransaction(txEvent) {
 
   // check if an address in the watchlist was the initiator of the transaction
   addresses.forEach((address) => {
-    if (from === address) {
+    if (from === address.toLowerCase()) {
       findings.push(
         Finding.fromObject({
           name: 'Aave Address Watch',

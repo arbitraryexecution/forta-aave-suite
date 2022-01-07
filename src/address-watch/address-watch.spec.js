@@ -64,5 +64,34 @@ describe('watch admin addresses', () => {
         }),
       ]);
     });
+
+    it('returns a finding if the transaction originator is on the watch list and contains a mix of uppercase and lowercase letters in its address', async () => {
+      // build txEvent
+      const fromAddress = '0x504b0B9B2fa7fEb434820058061f73E7e86ed38A';
+      const txEvent = createTxEvent({
+        from: fromAddress.toLowerCase(),
+        hash: ethers.constants.HashZero,
+      });
+
+      // run agent with txEvent
+      const findings = await handleTransaction(txEvent);
+      const { from, hash } = txEvent.transaction;
+
+      // assertions
+      expect(findings).toStrictEqual([
+        Finding.fromObject({
+          name: 'Aave Address Watch',
+          description: `Address ${fromAddress} (${addressList[fromAddress]}) was involved in a transaction`,
+          alertId: 'AE-AAVE-ADDRESS-WATCH',
+          type: FindingType.Suspicious,
+          severity: FindingSeverity.Low,
+          metadata: {
+            from,
+            hash,
+          },
+          everestId: AAVE_EVEREST_ID,
+        }),
+      ]);
+    });
   });
 });

@@ -2,15 +2,15 @@ const { createBlockEvent } = require('forta-agent');
 const BigNumber = require('bignumber.js');
 const RollingMath = require('rolling-math');
 const { provideHandleBlock, createAlert } = require('./reserve-watch');
+const { reserveWatch: config } = require('../../agent-config.json');
 
 jest.mock('rolling-math');
 
 const baseRollingMath = {
-
   getWindowSize: jest.fn(function fn() { return this.arg0; }),
-  getElements: jest.fn(() => 0),
-  getSum: jest.fn(() => 0),
-  getAverage: jest.fn(() => 0),
+  getNumElements: jest.fn(() => config.windowSize),
+  getSum: jest.fn(() => new BigNumber(0)),
+  getAverage: jest.fn(() => new BigNumber(0)),
   getStandardDeviation: jest.fn(() => new BigNumber(0)),
   addElement: jest.fn(() => 0),
 };
@@ -92,15 +92,33 @@ describe('Aave reserve price agent', () => {
       // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);
 
-      // mocked RollingMath will trigger findings on the next block
       const findings = await handleBlock(blockEvent);
 
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns empty if reserve price swing is above threshold but not enough blocks have been seen yet', async () => {
+      const overrides = {
+        getAverage: jest.fn(() => new BigNumber(0)),
+        getStandardDeviation: jest.fn(() => new BigNumber(0)),
+        getNumElements: jest.fn(() => config.windowSize - 1),
+      };
+
+      const res = mockLibrary(baseRollingMath, overrides);
+      RollingMath.mockImplementation(res.mockImplementation);
+
+      handleBlock = provideHandleBlock(RollingMath, mockProtocolDataProvider, mockPriceOracle);
+
+      await handleBlock(blockEvent);
+
+      const findings = await handleBlock(blockEvent);
       expect(findings).toStrictEqual([]);
     });
 
     it('returns findings if reserve price swing is above threshold', async () => {
       const overrides = {
         getAverage: jest.fn(() => new BigNumber(0)),
+        getStandardDeviation: jest.fn(() => new BigNumber(0)),
       };
 
       const res = mockLibrary(baseRollingMath, overrides);
