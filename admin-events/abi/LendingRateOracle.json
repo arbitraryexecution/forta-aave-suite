@@ -1,7 +1,4 @@
 {
-  "_format": "hh-sol-artifact-1",
-  "contractName": "ILendingPoolAddressesProviderRegistry",
-  "sourceName": "contracts/interfaces/ILendingPoolAddressesProviderRegistry.sol",
   "abi": [
     {
       "anonymous": false,
@@ -9,11 +6,17 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "newAddress",
+          "name": "asset",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "rate",
+          "type": "uint256"
         }
       ],
-      "name": "AddressesProviderRegistered",
+      "name": "MarketBorrowRateSet",
       "type": "event"
     },
     {
@@ -22,22 +25,28 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "newAddress",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
           "type": "address"
         }
       ],
-      "name": "AddressesProviderUnregistered",
+      "name": "OwnershipTransferred",
       "type": "event"
     },
     {
       "inputs": [
         {
           "internalType": "address",
-          "name": "addressesProvider",
+          "name": "asset",
           "type": "address"
         }
       ],
-      "name": "getAddressesProviderIdByAddress",
+      "name": "getMarketBorrowRate",
       "outputs": [
         {
           "internalType": "uint256",
@@ -50,31 +59,20 @@
     },
     {
       "inputs": [],
-      "name": "getAddressesProvidersList",
+      "name": "owner",
       "outputs": [
         {
-          "internalType": "address[]",
+          "internalType": "address",
           "name": "",
-          "type": "address[]"
+          "type": "address"
         }
       ],
       "stateMutability": "view",
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "provider",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "id",
-          "type": "uint256"
-        }
-      ],
-      "name": "registerAddressesProvider",
+      "inputs": [],
+      "name": "renounceOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -83,18 +81,32 @@
       "inputs": [
         {
           "internalType": "address",
-          "name": "provider",
+          "name": "asset",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "rate",
+          "type": "uint256"
+        }
+      ],
+      "name": "setMarketBorrowRate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
           "type": "address"
         }
       ],
-      "name": "unregisterAddressesProvider",
+      "name": "transferOwnership",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     }
-  ],
-  "bytecode": "0x",
-  "deployedBytecode": "0x",
-  "linkReferences": {},
-  "deployedLinkReferences": {}
+  ]
 }

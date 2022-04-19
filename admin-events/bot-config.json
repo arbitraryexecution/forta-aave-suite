@@ -1,0 +1,107 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contracts": {
+    "LendingPoolAddressesProvider": {
+      "address": "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
+      "abiFile": "LendingPoolAddressesProvider.json",
+      "events": [
+        "MarketIdSet",
+        "LendingPoolUpdated",
+        "ConfigurationAdminUpdated",
+        "EmergencyAdminUpdated",
+        "LendingPoolConfiguratorUpdated",
+        "LendingPoolCollateralManagerUpdated",
+        "PriceOracleUpdated",
+        "LendingRateOracleUpdated",
+        "ProxyCreated",
+        "AddressSet"
+      ]
+    },
+    "LendingPoolAddressesProviderRegistry": {
+      "address": "0x52D306e36E3B6B02c153d0266ff0f85d18BCD413",
+      "abiFile": "LendingPoolAddressesProviderRegistry.json",
+      "events": [
+        "AddressesProviderRegistered",
+        "AddressesProviderUnregistered",
+        "OwnershipTransferred"
+      ]
+    },
+    "LendingPoolConfigurator": {
+      "address": "0x311Bb771e4F8952E6Da169b425E7e92d6Ac45756",
+      "abiFile": "LendingPoolConfigurator.json",
+      "events": [
+        "Upgraded"
+      ]
+    },
+    "LendingRateOracle": {
+      "address": "0x8A32f49FFbA88aba6EFF96F45D8BD1D4b3f35c7D",
+      "abiFile": "LendingRateOracle.json",
+      "events": [
+        "OwnershipTransferred"
+      ]
+    },
+    "PriceOracle": {
+      "address": "0xA50ba011c48153De246E5192C8f9258A2ba79Ca9",
+      "abiFile": "PriceOracle.json",
+      "events": [
+        "OwnershipTransferred",
+        "WethSet",
+        "AssetSourceUpdated",
+        "FallbackOracleUpdated"
+      ]
+    },
+    "WETHGateway": {
+      "address": "0xcc9a0B7c43DC2a5F023Bb9b738E45B0Ef6B06E04",
+      "abiFile": "WETHGateway.json",
+      "events": [
+        "OwnershipTransferred"
+      ]
+    },
+    "AaveGovernanceV2": {
+      "address": "0xEC568fffba86c094cf06b22134B23074DFE2252c",
+      "abiFile": "AaveGovernanceV2.json",
+      "events": [
+        "ExecutorAuthorized",
+        "ExecutorUnauthorized",
+        "OwnershipTransferred",
+        "ProposalCanceled",
+        "ProposalCreated",
+        "ProposalExecuted",
+        "ProposalQueued",
+        "VoteEmitted",
+        "VotingDelayChanged"
+      ]
+    },
+    "ExecutorShort": {
+      "address": "0xEE56e2B3D491590B5b31738cC34d5232F378a8D5",
+      "abiFile": "ExecutorShort.json",
+      "events": [
+        "CancelledAction",
+        "ExecutedAction",
+        "NewAdmin",
+        "NewDelay",
+        "NewPendingAdmin"
+      ]
+    },
+    "ExecutorLong": {
+      "address": "0x61910EcD7e8e942136CE7Fe7943f956cea1CC2f7",
+      "abiFile": "ExecutorLong.json",
+      "events": [
+        "CancelledAction",
+        "ExecutedAction",
+        "NewAdmin",
+        "NewDelay",
+        "NewPendingAdmin"
+      ]
+    },
+    "EcosystemReserve": {
+      "address": "0x25F2226B597E8F9514B3F68F00f494cF4f286491",
+      "abiFile": "EcosystemReserve.json",
+      "events": [
+        "NewFundsAdmin"
+      ]
+    }
+  }
+}
