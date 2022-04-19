@@ -1,0 +1,84 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbrev": "AAVE",
+  "contracts": {
+    "AaveDeployer": {
+      "address": "0xFe1A6056EE03235f30f7a48407A5673BBf25eD48",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer2": {
+      "address": "0x2fbb0c60a41cb7ea5323071624dcead3d213d0fa",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer3": {
+      "address": "0x51f22ac850d29c879367a77d241734acb276b815",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer4": {
+      "address": "0xbd723fc4f1d737dcfc48a07fe7336766d34cad5f",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer5": {
+      "address": "0x3a6e2310c72624713fD2F678684b678DD1dDC28C",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer6": {
+      "address": "0x30fe242a69d7694a931791429815db792e24cf97",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer7": {
+      "address": "0x46bcf35d96eda5e5f6ec48c7956bb4ed9caba1f2",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer8": {
+      "address": "0x4C1e2f7eCA15c682C0da73f73C8DF40623984B57",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer9": {
+      "address": "0x504b0B9B2fa7fEb434820058061f73E7e86ed38A",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "AaveDeployer10": {
+      "address": "0xa6842c2c7fece4cdc6a4aaad331eb1c7910e419a",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    },
+    "Unknown1": {
+      "address": "0x49598e2f08d11980e06c5507070f6dd97ce8f0bb",
+      "watch" : {
+        "type": "Info",
+        "severity": "Info"
+      }
+    }
+  }
+}
