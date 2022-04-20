@@ -1,46 +1,57 @@
-const ethers = require('ethers');
-
 const {
-  TransactionEvent,
-  FindingType,
-  FindingSeverity,
-  Finding,
+  TransactionEvent, FindingType, FindingSeverity, Finding, ethers,
 } = require('forta-agent');
 
-const { handleTransaction } = require('./agent');
+const { provideHandleTransaction, provideInitialize } = require('./agent');
 
 // constants
-const lendingPoolAddressProvider = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5';
-const configurationAdminUpdatedTopic = '0xc20a317155a9e7d84e06b716b4b355d47742ab9f8c5d630e7f556553f582430d';
-
-const { aaveEverestId: AAVE_EVEREST_ID } = require('../agent-config.json');
+const mockContractName = 'mockContract';
+const mockContractAddress = ethers.utils.hexZeroPad('0x1', 20);
+const mockEventName = 'mockEvent';
+const mockEventSignature = 'event mockEvent()';
 
 /**
- * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
+ * TransactionEvent(type, network, transaction, traces, addresses, block, logs, contractAddress)
  */
-function createTxEvent({ hash, logs, addresses }) {
-  return new TransactionEvent(null, null, { hash }, { logs }, [], addresses, null);
+function createTxEvent({ logs, addresses }) {
+  return new TransactionEvent(null, null, null, [], [], null, logs, addresses);
 }
 
 // tests
 describe('admin event monitoring', () => {
+  let initializeData;
+  let handleTransaction;
+  const iface = new ethers.utils.Interface([mockEventSignature]);
+  const mockEventFragment = iface.getEvent(mockEventName);
+  const mockEventTopic = iface.getEventTopic(mockEventFragment);
+  const logSignature = iface
+    .getEvent(mockEventName)
+    .format(ethers.utils.FormatTypes.minimal)
+    .substring(6);
+
   // logs data for test case: address match + topic match (should trigger a finding)
   const logsMatchEvent = [
     {
-      address: lendingPoolAddressProvider,
+      name: mockContractName,
+      address: mockContractAddress,
+      signature: logSignature,
       topics: [
-        configurationAdminUpdatedTopic,
+        mockEventTopic,
       ],
+      data: '0x',
     },
   ];
 
   // logs data for test case: address match + no topic match
   const logsNoMatchEvent = [
     {
-      address: lendingPoolAddressProvider,
+      name: '',
+      address: mockContractAddress,
+      signature: '',
       topics: [
-        '0x0',
+        ethers.constants.HashZero,
       ],
+      data: '0x',
     },
   ];
 
@@ -51,19 +62,35 @@ describe('admin event monitoring', () => {
       topics: [
         ethers.constants.HashZero,
       ],
+      data: '0x',
     },
   ];
+
+  beforeEach(async () => {
+    initializeData = {};
+
+    // initialize the handler
+    await (provideInitialize(initializeData))();
+    handleTransaction = provideHandleTransaction(initializeData);
+
+    // modify initializeData to contain only the mock contract information for testing
+    initializeData.contracts = [{
+      name: mockContractName,
+      address: mockContractAddress,
+      iface,
+      eventSignatures: [mockEventSignature],
+    }];
+  });
 
   describe('handleTransaction', () => {
     it('returns empty findings if contract address does not match', async () => {
       // build txEvent
       const txEvent = createTxEvent({
-        hash: ethers.constants.HashZero,
         logs: logsNoMatchAddress,
         addresses: { [ethers.constants.AddressZero]: true },
       });
 
-      // run agent
+      // run bot
       const findings = await handleTransaction(txEvent);
 
       // assertions
@@ -73,12 +100,11 @@ describe('admin event monitoring', () => {
     it('returns empty findings if contract address matches but not event', async () => {
       // build tx event
       const txEvent = createTxEvent({
-        hash: ethers.constants.HashZero,
         logs: logsNoMatchEvent,
-        addresses: { [lendingPoolAddressProvider]: true },
+        addresses: { [mockContractAddress]: true },
       });
 
-      // run agent
+      // run bot
       const findings = await handleTransaction(txEvent);
 
       // assertions
@@ -86,36 +112,28 @@ describe('admin event monitoring', () => {
     });
 
     it('returns a finding if a target contract emits an event from its watchlist', async () => {
-      const eventName = 'ConfigurationAdminUpdated(address)';
-      const contractName = 'LendingPoolAddressesProvider';
-      const contractAddress = lendingPoolAddressProvider;
-
       // build txEvent
       const txEvent = createTxEvent({
-        hash: ethers.constants.HashZero,
         logs: logsMatchEvent,
-        addresses: { [lendingPoolAddressProvider]: true },
+        addresses: { [mockContractAddress]: true },
       });
 
-      // run agent
+      // run bot
       const findings = await handleTransaction(txEvent);
-      const { hash } = txEvent.transaction;
 
       // assertions
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: 'Aave Admin Event',
-          description: `The ${eventName} event was emitted by the ${contractName} contract`,
+          description: `The ${mockEventName} event was emitted by the ${mockContractName} contract`,
           alertId: 'AE-AAVE-ADMIN-EVENT',
           type: FindingType.Suspicious,
           severity: FindingSeverity.Low,
           metadata: {
-            hash,
-            contractName,
-            contractAddress,
-            eventName,
+            contractName: mockContractName,
+            contractAddress: mockContractAddress,
+            eventName: mockEventName,
           },
-          everestId: AAVE_EVEREST_ID,
         }),
       ]);
     });
