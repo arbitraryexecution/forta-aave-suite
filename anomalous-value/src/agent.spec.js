@@ -1,41 +1,21 @@
-const ethers = require('ethers');
-
 // imports from forta-agent
 const {
-  TransactionEvent,
-  FindingType,
-  FindingSeverity,
-  Finding,
+  TransactionEvent, FindingType, FindingSeverity, Finding, ethers,
 } = require('forta-agent');
 
-// local definitions
-const { LendingPool: address } = require('../contract-addresses.json');
-const { abi } = require('../abi/ILendingPool.json');
-const { handleTransaction } = require('./agent');
+const { provideHandleTransaction, provideInitialize } = require('./agent');
+const { getAbi } = require('./utils');
 
-const {
-  anomalousValue: config,
-  aaveEverestId: AAVE_EVEREST_ID,
-} = require('../agent-config.json');
+const config = require('../bot-config.json');
 
-// create interface
+// pull information from config file which will be used for testing
+const { address, windowSize } = config.contract.LendingPool;
+const abi = getAbi(config.contract.LendingPool.abiFile);
 const iface = new ethers.utils.Interface(abi);
 
 // constants for test
 const tokenA = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const zeroAddress = ethers.constants.AddressZero;
-const zeroHash = ethers.constants.HashZero;
-
-// default empty log structure
-const emptyLog = {
-  address: zeroHash,
-  logIndex: 0,
-  blockNumber: 0,
-  blockHash: zeroHash,
-  transactionIndex: 0,
-  transactionHash: zeroHash,
-  removed: false,
-};
 
 // function to encode default values
 function defaultType(type) {
@@ -64,7 +44,7 @@ function createLog(eventAbi, inputArgs, logArgs) {
   const dataValues = [];
 
   // initialize default log and assign passed in values
-  const log = { ...emptyLog, ...logArgs };
+  const log = { ...logArgs };
 
   // build topics and data fields
   topics.push(ethers.utils.Interface.getEventTopic(eventAbi));
@@ -90,37 +70,25 @@ function createLog(eventAbi, inputArgs, logArgs) {
 }
 
 /**
- * Log(address, topics, data, logIndex, blockNumber, blockHash, transactionIndex,
- * transactionHash, removed)
- *
- * Receipt(status, root, gasUsed, cumulativeGasUsed, logsBloom, logs, contractAddress
- * blockNumber, blockHash, transactionIndex, transactionHash)
+ * TransactionEvent(type, network, transaction, traces, addresses, block, logs, contractAddress)
  */
-function createReceipt(logs, contractAddress) {
-  return {
-    status: null,
-    root: null,
-    gasUsed: null,
-    cumulativeGasUsed: null,
-    logsBloom: null,
-    logs,
-    contractAddress,
-    blockHash: null,
-    transactionIndex: null,
-    transactionHash: null,
-    blockNumber: null,
-  };
-}
-
-/**
- * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
- */
-function createTxEvent(receipt, addresses) {
-  return new TransactionEvent(null, null, null, receipt, [], addresses, null);
+function createTxEvent({ logs, addresses }) {
+  return new TransactionEvent(null, null, null, [], [], null, logs, addresses);
 }
 
 // tests
 describe('aave anomalous value agent', () => {
+  let initializeData;
+  let handleTransaction;
+
+  beforeEach(async () => {
+    initializeData = {};
+
+    // initialize the handler
+    await (provideInitialize(initializeData))();
+    handleTransaction = provideHandleTransaction(initializeData);
+  });
+
   describe('handleTransaction', () => {
     it('should not further parse non-aave logs', async () => {
       // create log with address other than aave
@@ -129,8 +97,10 @@ describe('aave anomalous value agent', () => {
         { address: zeroAddress });
 
       // build txEvent
-      const receipt = createReceipt([log], zeroAddress);
-      const txEvent = createTxEvent(receipt, zeroAddress);
+      const txEvent = createTxEvent({
+        logs: [log],
+        addresses: { [zeroAddress]: true },
+      });
 
       // run agent with txEvent
       const findings = await handleTransaction(txEvent);
@@ -147,11 +117,13 @@ describe('aave anomalous value agent', () => {
         { address });
 
       // build txEvent
-      const receipt = createReceipt([log, log, log], address);
-      const txEvent = createTxEvent(receipt, address);
+      const txEvent = createTxEvent({
+        logs: [log],
+        addresses: { [address]: true },
+      });
 
       // run agent with txEvent, should update averages
-      for (let i = 0; i < config.windowSize; i++) {
+      for (let i = 0; i < windowSize; i++) {
         // eslint-disable-next-line no-await-in-loop
         const finding = await handleTransaction(txEvent);
         expect(finding).toStrictEqual([]);
@@ -163,17 +135,18 @@ describe('aave anomalous value agent', () => {
         { address });
 
       // create anomalous txEvent
-      const anomalousReceipt = createReceipt([anomalousLog], address);
-      const anomalousTxEvent = createTxEvent(anomalousReceipt, address);
+      const anomalousTxEvent = createTxEvent({
+        logs: [anomalousLog],
+        addresses: { [address]: true },
+      });
 
       // create expected finding
       const expectedFinding = Finding.fromObject({
-        name: 'High AAVE Borrow Amount',
+        name: 'Aave High Borrow Amount',
         description: `A transaction utilized a large amount of ${tokenA}`,
         alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
         severity: FindingSeverity.Medium,
         type: FindingType.Suspicious,
-        everestId: AAVE_EVEREST_ID,
         metadata: {
           event: 'Borrow',
           amount: `${largeAmount}`,

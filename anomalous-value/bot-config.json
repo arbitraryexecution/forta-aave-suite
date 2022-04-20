@@ -1,0 +1,15 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contract": {
+    "LendingPool" : {
+      "address": "0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9",
+      "abiFile": "ILendingPool.json",
+      "windowSize": 10,
+      "standardDeviations" : 3,
+      "type": "Suspicious",
+      "severity": "Medium"
+    }
+  }
+}

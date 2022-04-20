@@ -1,37 +1,24 @@
-const ethers = require('ethers');
+const {
+  Finding, FindingSeverity, FindingType, ethers,
+} = require('forta-agent');
 const BigNumber = require('bignumber.js');
-const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 const RollingMath = require('rolling-math');
 
-// load required shared types
-const { LendingPool: address } = require('../contract-addresses.json');
-const { abi } = require('../abi/ILendingPool.json');
+const { getAbi } = require('./utils');
 
-const { anomalousValue, aaveEverestId: AAVE_EVEREST_ID } = require('../agent-config.json');
+// load config
+const config = require('../bot-config.json');
 
-// create ethers interface object
-const iface = new ethers.utils.Interface(abi);
-
-// events we are interested in
-const eventFragments = [
-  iface.getEvent('Borrow'),
-  iface.getEvent('Deposit'),
-  iface.getEvent('Repay'),
-  iface.getEvent('Withdraw'),
-];
-
-// create rolling math object structure
-const rollingEventData = {};
+const initializeData = {};
 
 // helper function to create alerts
-function createAlert(log) {
+function createAlert(developerAbbrev, protocolName, protocolAbbrev, log, type, severity) {
   return Finding.fromObject({
-    name: `High AAVE ${log.name} Amount`,
+    name: `${protocolName} High ${log.name} Amount`,
     description: `A transaction utilized a large amount of ${log.args.reserve}`,
-    alertId: 'AE-AAVE-HIGH-TX-AMOUNT',
-    severity: FindingSeverity.Medium,
-    type: FindingType.Suspicious,
-    everestId: AAVE_EVEREST_ID,
+    alertId: `${developerAbbrev}-${protocolAbbrev}-HIGH-TX-AMOUNT`,
+    severity: FindingSeverity[severity],
+    type: FindingType[type],
     metadata: {
       event: log.name,
       amount: log.args.amount.toString(),
@@ -40,45 +27,97 @@ function createAlert(log) {
   });
 }
 
-async function handleTransaction(txEvent) {
-  const findings = [];
+function provideInitialize(data) {
+  return async function initialize() {
+    /* eslint-disable no-param-reassign */
+    const { LendingPool: lendingPoolConfig } = config.contract;
+    const abi = getAbi(lendingPoolConfig.abiFile);
 
-  const parsedLogs = txEvent.filterLog(eventFragments, address);
+    // create ethers interface object
+    const iface = new ethers.utils.Interface(abi);
 
-  // loop over each eventLog, checking for anomalous value
-  parsedLogs.forEach((log) => {
-    // rolling math requires bignumber.js style BigNumbers
-    const amount = new BigNumber(log.args.amount.toHexString());
+    // events we are interested in
+    const eventFragments = [
+      iface.getEvent('Borrow'),
+      iface.getEvent('Deposit'),
+      iface.getEvent('Repay'),
+      iface.getEvent('Withdraw'),
+    ];
 
-    // if we haven't seen this reserve yet, initialize it
-    if (!rollingEventData[log.args.reserve]) {
-      rollingEventData[log.args.reserve] = new RollingMath(anomalousValue.windowSize);
-    }
+    // assign configurable fields
+    data.address = lendingPoolConfig.address;
+    data.protocolName = config.protocolName;
+    data.protocolAbbrev = config.protocolAbbreviation;
+    data.developerAbbrev = config.developerAbbreviation;
+    data.eventFragments = eventFragments;
+    data.type = lendingPoolConfig.type;
+    data.severity = lendingPoolConfig.severity;
 
-    // only process data for alerts if we have seen a significant number of blocks
-    if (rollingEventData[log.args.reserve].getNumElements() >= anomalousValue.windowSize) {
-      // if we have seen this before, check for anomalous value
-      const average = rollingEventData[log.args.reserve].getAverage();
-      const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
+    // create rolling math object structure
+    data.rollingEventData = {};
+    data.windowSize = lendingPoolConfig.windowSize;
+    data.standardDeviations = lendingPoolConfig.standardDeviations;
+    /* eslint-enable no-param-reassign */
+  };
+}
 
-      // limit is set from agent-config.json file
-      const limit = standardDeviation.times(anomalousValue.standardDeviations);
-      const delta = amount.minus(average).absoluteValue();
+function provideHandleTransaction(data) {
+  return async function handleTransaction(txEvent) {
+    const {
+      developerAbbrev,
+      protocolName,
+      protocolAbbrev,
+      address,
+      eventFragments,
+      type,
+      severity,
+      rollingEventData,
+      windowSize,
+      standardDeviations,
+    } = data;
+    const findings = [];
+    const parsedLogs = txEvent.filterLog(eventFragments, address);
 
-      // if instance is outside the standard deviation, report
-      if (delta.isGreaterThan(limit)) {
-        findings.push(createAlert(log));
+    // loop over each eventLog, checking for anomalous value
+    parsedLogs.forEach((log) => {
+      // rolling math requires bignumber.js style BigNumbers
+      const amount = new BigNumber(log.args.amount.toHexString());
+
+      // if we haven't seen this reserve yet, initialize it
+      if (!rollingEventData[log.args.reserve]) {
+        rollingEventData[log.args.reserve] = new RollingMath(windowSize);
       }
-    }
 
-    // update rolling data
-    rollingEventData[log.args.reserve].addElement(amount);
-  });
+      // only process data for alerts if we have seen a significant number of blocks
+      if (rollingEventData[log.args.reserve].getNumElements() >= windowSize) {
+        // if we have seen this before, check for anomalous value
+        const average = rollingEventData[log.args.reserve].getAverage();
+        const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
 
-  return findings;
+        // limit is set from agent-config.json file
+        const limit = standardDeviation.times(standardDeviations);
+        const delta = amount.minus(average).absoluteValue();
+
+        // if instance is outside the standard deviation, report
+        if (delta.isGreaterThan(limit)) {
+          findings.push(
+            createAlert(developerAbbrev, protocolName, protocolAbbrev, log, type, severity),
+          );
+        }
+      }
+
+      // update rolling data
+      rollingEventData[log.args.reserve].addElement(amount);
+    });
+
+    return findings;
+  };
 }
 
 // exports
 module.exports = {
-  handleTransaction,
+  provideInitialize,
+  initialize: provideInitialize(initializeData),
+  provideHandleTransaction,
+  handleTransaction: provideHandleTransaction(initializeData),
 };

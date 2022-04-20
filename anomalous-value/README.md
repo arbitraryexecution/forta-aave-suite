@@ -2,7 +2,7 @@
 
 ## Description
 
-This agent monitors Aave lending pool transactions that cross a predefined threshold amount.
+This bot monitors Aave lending pool transactions that cross a predefined threshold amount.
 
 ## Supported Chains
 
@@ -19,4 +19,4 @@ This agent monitors Aave lending pool transactions that cross a predefined thres
 
 ## Test Data
 
-To run all the tests for this agent, use the following command: `npm run test`
+To run all the tests for this bot, use the following command: `npm run test`
