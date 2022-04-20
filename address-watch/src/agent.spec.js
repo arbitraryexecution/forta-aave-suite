@@ -32,7 +32,7 @@ const {
 } = require('forta-agent');
 
 // local definitions
-const { handleTransaction } = require('./bot');
+const { handleTransaction } = require('./agent');
 
 /**
  * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
