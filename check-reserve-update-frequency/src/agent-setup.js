@@ -1,24 +1,22 @@
-const ethers = require('ethers');
-const {
-  Finding, FindingSeverity, FindingType, getJsonRpcUrl,
-} = require('forta-agent');
+const { ethers, getEthersProvider } = require('forta-agent');
 
-// load required shared types
-const {
-  LendingPoolAddressesProvider: lendingPoolAddressesProvider,
-  ProtocolDataProvider: protocolDataProviderAddress,
-} = require('../contract-addresses.json');
+// load required ABIs
 const { abi: protocolDataProviderAbi } = require('../abi/AaveProtocolDataProvider.json');
 const { abi: aaveOracleAbi } = require('../abi/AaveOracle.json');
 const { abi: chainlinkAggregatorAbi } = require('../abi/AggregatorV3Interface.json');
 const { abi: lendingPoolAddressesProviderAbi } = require('../abi/ILendingPoolAddressesProvider.json');
 
-const { aaveEverestId: AAVE_EVEREST_ID } = require('../agent-config.json');
+// load config
+const config = require('../bot-config.json');
 
-// set up the an ethers provider
-// use ethers.providers.JsonRpcProvider() in lieu of ethers.providers.WebSocketProvider()
-// websockets are not supported in production
-const jsonRpcProvider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
+// set up a variable to hold initialization data used in the handler
+const initializeData = {};
+
+// time threshold over which we trigger alerts (24 hours = 86400 seconds)
+// this value comes from the Chainlink web interface for price feeds (mouseover Trigger parameters)
+//  'A new trusted answer is written when the off-chain price moves more than the deviation
+//   threshold or 86400 seconds have passed since the last answer was written on-chain.'
+const ORACLE_AGE_THRESHOLD_SECONDS = config.oracleAgeThresholdSeconds;
 
 // there are several reserve tokens in AAVE that do not use Chainlink price oracles
 // we will filter these out before we attempt to determine the age of the oracle data
@@ -31,75 +29,66 @@ const TOKENS_WITHOUT_CHAINLINK_ABI = [
   '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // Wrapped Ether
 ];
 
-// helper function to create alerts
-function createAlert(reserveToken, oracleAge, priceSourceAddress) {
-  return Finding.fromObject({
-    name: `Stale AAVE Price Oracle Data for ${reserveToken.symbol}`,
-    description: `Token ${reserveToken.symbol} Price Oracle Age: ${oracleAge} seconds`,
-    alertId: 'AE-AAVE-PRICE-ORACLE-STALE',
-    severity: FindingSeverity.Medium,
-    type: FindingType.Degraded,
-    everestId: AAVE_EVEREST_ID,
-    metadata: {
-      symbol: reserveToken.symbol,
-      tokenAddress: reserveToken.tokenAddress,
-      oracleAge,
-      priceSourceAddress,
-    },
-  });
-}
+function provideInitialize(data) {
+  return async function initialize() {
+    /* eslint-disable no-param-reassign */
+    const jsonRpcProvider = getEthersProvider();
+    const protocolDataProviderAddress = config.contractAddresses.ProtocolDataProvider;
+    const lendingPoolAddressesProvider = config.contractAddresses.LendingPoolAddressesProvider;
 
-async function initializeTokensContracts() {
-  // create instances of ethers contracts to call read-only methods
-  const protocolDataProviderContract = new ethers.Contract(
-    protocolDataProviderAddress, protocolDataProviderAbi, jsonRpcProvider,
-  );
-  const lendingPoolAddressProviderContract = new ethers.Contract(
-    lendingPoolAddressesProvider, lendingPoolAddressesProviderAbi, jsonRpcProvider,
-  );
+    // create instances of ethers contracts to call read-only methods
+    const protocolDataProviderContract = new ethers.Contract(
+      protocolDataProviderAddress, protocolDataProviderAbi, jsonRpcProvider,
+    );
+    const lendingPoolAddressProviderContract = new ethers.Contract(
+      lendingPoolAddressesProvider, lendingPoolAddressesProviderAbi, jsonRpcProvider,
+    );
 
-  // get an array of all of the reserve tokens, in the form of TokenData struct entries
-  // ref: https://docs.aave.com/developers/the-core-protocol/protocol-data-provider#getallreservestokens
-  let reserveTokenArray = await protocolDataProviderContract.getAllReservesTokens();
+    // get an array of all of the reserve tokens, in the form of TokenData struct entries
+    // ref: https://docs.aave.com/developers/the-core-protocol/protocol-data-provider#getallreservestokens
+    let reserveTokenArray = await protocolDataProviderContract.getAllReservesTokens();
 
-  // remove tokens that do not have Chainlink price oracles
-  reserveTokenArray = reserveTokenArray.filter(
-    (reserveToken) => TOKENS_WITHOUT_CHAINLINK_ABI.indexOf(reserveToken.tokenAddress) === -1,
-  );
+    // remove tokens that do not have Chainlink price oracles
+    reserveTokenArray = reserveTokenArray.filter(
+      (reserveToken) => TOKENS_WITHOUT_CHAINLINK_ABI.indexOf(reserveToken.tokenAddress) === -1,
+    );
 
-  // get the AAVE price oracle address
-  const priceOracleAddress = await lendingPoolAddressProviderContract.getPriceOracle();
-  const priceOracleContractInstance = new ethers.Contract(
-    priceOracleAddress,
-    aaveOracleAbi,
-    jsonRpcProvider,
-  );
+    // get the AAVE price oracle address
+    const priceOracleAddress = await lendingPoolAddressProviderContract.getPriceOracle();
+    const priceOracleContractInstance = new ethers.Contract(
+      priceOracleAddress, aaveOracleAbi, jsonRpcProvider,
+    );
 
-  // get the price source addresses
-  const priceSourceAddresses = await Promise.all(reserveTokenArray.map(
-    (reserveToken) => priceOracleContractInstance.getSourceOfAsset(reserveToken.tokenAddress),
-  ));
+    // get the price source addresses
+    const priceSourceAddresses = await Promise.all(reserveTokenArray.map(
+      (reserveToken) => priceOracleContractInstance.getSourceOfAsset(reserveToken.tokenAddress),
+    ));
 
-  // create ethers contracts to run read-only methods from the Chainlink contracts
-  const priceSourceContractInstances = priceSourceAddresses.map(
-    (priceSourceAddress) => new ethers.Contract(
-      priceSourceAddress,
-      chainlinkAggregatorAbi,
-      jsonRpcProvider,
-    ),
-  );
+    // create ethers contracts to run read-only methods from the Chainlink contracts
+    const priceSourceContractInstances = priceSourceAddresses.map(
+      (priceSourceAddress) => new ethers.Contract(
+        priceSourceAddress, chainlinkAggregatorAbi, jsonRpcProvider,
+      ),
+    );
 
-  // create an array of token / address / contract tuples that we will iterate over
-  const tokenAddressContractTuples = reserveTokenArray.map((reserveToken, index) => {
-    const priceSourceAddress = priceSourceAddresses[index];
-    const priceSourceContract = priceSourceContractInstances[index];
-    return { reserveToken, priceSourceAddress, priceSourceContract };
-  });
+    // create an array of token / address / contract tuples that we will iterate over
+    const tokenAddressContractTuples = reserveTokenArray.map((reserveToken, index) => {
+      const priceSourceAddress = priceSourceAddresses[index];
+      const priceSourceContract = priceSourceContractInstances[index];
+      return { reserveToken, priceSourceAddress, priceSourceContract };
+    });
 
-  return tokenAddressContractTuples;
+    // assign configurable fields
+    data.protocolName = config.protocolName;
+    data.protocolAbbrev = config.protocolAbbreviation;
+    data.developerAbbrev = config.developerAbbreviation;
+    data.tokenAddressContractTuples = tokenAddressContractTuples;
+    /* eslint-enable no-param-reassign */
+  };
 }
 
 module.exports = {
-  initializeTokensContracts,
-  createAlert,
+  ORACLE_AGE_THRESHOLD_SECONDS,
+  initializeData,
+  provideInitialize,
 };

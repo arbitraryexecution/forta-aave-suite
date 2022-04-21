@@ -1,7 +1,7 @@
 {
   "name": "forta-aave-stale-price-oracle",
   "version": "0.0.4",
-  "description": "Agent that monitors price oracle data to see if it has not been updated in over 24 hours",
+  "description": "Bot that monitors price oracle data to see if it has not been updated in over 24 hours",
   "scripts": {
     "start": "npm run start:dev",
     "start:dev": "nodemon --watch src --watch forta.config.json -e js,json --exec 'forta-agent run'",
@@ -20,12 +20,8 @@
     "posttest:docker": "docker run testbuild"
   },
   "dependencies": {
-    "axios": "^0.21.4",
     "bignumber.js": "^9.0.1",
-    "dotenv": "^10.0.0",
-    "ethers": "^5.4.6",
-    "forta-agent": "^0.0.33",
-    "rolling-math": "^0.0.1"
+    "forta-agent": "^0.0.33"
   },
   "devDependencies": {
     "eslint": "^7.32.0",
