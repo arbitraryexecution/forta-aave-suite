@@ -2,7 +2,7 @@
 
 ## Description
 
-This agent monitors large Aave reserve price changes.
+This bot monitors large Aave reserve price changes.
 
 ## Supported Chains
 
@@ -19,4 +19,6 @@ This agent monitors large Aave reserve price changes.
 
 ## Test Data
 
-To run all the tests for this agent, use the following command: `npm run test`
+To run all the tests for this bot, use the following command: `npm run test`
+
+The bot can also be run against a specific block range which should trigger an alert: `npx forta-agent run --range 13940731..13940832`

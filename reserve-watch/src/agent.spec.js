@@ -1,14 +1,36 @@
-const { createBlockEvent } = require('forta-agent');
-const BigNumber = require('bignumber.js');
+// create mock values used for testing
+const mockReserveToken = { symbol: 'FAKE1', tokenAddress: '0xFIRSTFAKETOKENADDRESS' };
+
+// create a mock contract that contains the methods used when initializing the bot
+const mockCombinedContract = {
+  getAllReservesTokens: jest.fn().mockResolvedValue([mockReserveToken]),
+  getAssetPrice: jest.fn().mockResolvedValue('0x1'),
+};
+
+// combine the mocked provider and contracts into the ethers import mock
+jest.mock('forta-agent', () => ({
+  ...jest.requireActual('forta-agent'),
+  getEthersProvider: jest.fn(),
+  ethers: {
+    ...jest.requireActual('ethers'),
+    Contract: jest.fn().mockReturnValue(mockCombinedContract),
+  },
+}));
+
+const {
+  BlockEvent, Finding, FindingType, FindingSeverity, ethers,
+} = require('forta-agent');
 const RollingMath = require('rolling-math');
-const { provideHandleBlock, createAlert } = require('./agent');
-const { reserveWatch: config } = require('../agent-config.json');
+const BigNumber = require('bignumber.js');
+const { provideInitialize, provideHandleBlock } = require('./agent');
+const config = require('../bot-config.json');
 
 jest.mock('rolling-math');
 
+// setup mocks for rolling math library
 const baseRollingMath = {
   getWindowSize: jest.fn(function fn() { return this.arg0; }),
-  getNumElements: jest.fn(() => config.windowSize),
+  getNumElements: jest.fn(() => config.reserveWatch.windowSize),
   getSum: jest.fn(() => new BigNumber(0)),
   getAverage: jest.fn(() => new BigNumber(0)),
   getStandardDeviation: jest.fn(() => new BigNumber(0)),
@@ -49,32 +71,26 @@ function mockLibrary(baseMockLibrary, overrides) {
   };
 }
 
+// helper function for creating mock block events
+function createBlockEvent(block) {
+  return new BlockEvent(0, 1, block);
+}
+
 describe('Aave reserve price agent', () => {
   let handleBlock;
-  let mockData;
-  let mockProtocolDataProvider;
-  let mockPriceOracle;
-
-  beforeEach(() => {
-    mockData = [{ symbol: 'TEST', tokenAddress: '0xDEAD' }];
-
-    mockProtocolDataProvider = {
-      getAllReservesTokens: jest.fn(() => Promise.resolve(
-        mockData,
-      )),
-    };
-
-    mockPriceOracle = {
-      getAssetPrice: jest.fn(() => Promise.resolve(
-        '0x1',
-      )),
-    };
-  });
+  let initializeData;
 
   const blockEvent = createBlockEvent({
     blockHash: '0xa',
-    blockNumber: 1,
-    block: {},
+    blockNumber: 12345,
+  });
+
+  beforeEach(async () => {
+    initializeData = {};
+
+    // initialize the handler
+    await (provideInitialize(initializeData))();
+    handleBlock = provideHandleBlock(initializeData);
   });
 
   describe('Reserve Monitoring', () => {
@@ -88,7 +104,6 @@ describe('Aave reserve price agent', () => {
       const res = mockLibrary(baseRollingMath, overrides);
       RollingMath.mockImplementation(res.mockImplementation);
 
-      handleBlock = provideHandleBlock(RollingMath, mockProtocolDataProvider, mockPriceOracle);
       // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);
 
@@ -107,8 +122,7 @@ describe('Aave reserve price agent', () => {
       const res = mockLibrary(baseRollingMath, overrides);
       RollingMath.mockImplementation(res.mockImplementation);
 
-      handleBlock = provideHandleBlock(RollingMath, mockProtocolDataProvider, mockPriceOracle);
-
+      // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);
 
       const findings = await handleBlock(blockEvent);
@@ -124,14 +138,25 @@ describe('Aave reserve price agent', () => {
       const res = mockLibrary(baseRollingMath, overrides);
       RollingMath.mockImplementation(res.mockImplementation);
 
-      handleBlock = provideHandleBlock(RollingMath, mockProtocolDataProvider, mockPriceOracle);
-
+      // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);
-      const asset = mockData[0];
-      const test = [createAlert(asset, 1)];
+
+      const price = ethers.utils.formatEther(1);
+      const expectedFinding = Finding.fromObject({
+        name: 'High Aave FAKE1 Reserve Price Change',
+        description: `FAKE1 Price: ${price} ether`,
+        alertId: 'AE-AAVE-RESERVE-PRICE',
+        severity: FindingSeverity.Medium,
+        type: FindingType.Suspicious,
+        metadata: {
+          symbol: 'FAKE1',
+          price,
+        },
+      });
+
       // mocked RollingMath will trigger findings on the next block
       const findings = await handleBlock(blockEvent);
-      expect(findings).toStrictEqual(test);
+      expect(findings).toStrictEqual([expectedFinding]);
     });
   });
 });

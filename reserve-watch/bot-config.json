@@ -1,0 +1,15 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contractAddresses": {
+    "PriceOracle": "0xA50ba011c48153De246E5192C8f9258A2ba79Ca9",
+    "ProtocolDataProvider": "0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d"
+  },
+  "reserveWatch" : {
+    "windowSize": 10,
+    "numStds" : 3,
+    "type": "Suspicious",
+    "severity": "Medium"
+  }
+}
