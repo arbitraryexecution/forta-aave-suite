@@ -29,12 +29,12 @@ jest.mock('rolling-math');
 
 // setup mocks for rolling math library
 const baseRollingMath = {
-  getWindowSize: jest.fn(function fn() { return this.arg0; }),
-  getNumElements: jest.fn(() => config.reserveWatch.windowSize),
-  getSum: jest.fn(() => new BigNumber(0)),
-  getAverage: jest.fn(() => new BigNumber(0)),
-  getStandardDeviation: jest.fn(() => new BigNumber(0)),
-  addElement: jest.fn(() => 0),
+  getWindowSize: jest.fn().mockReturnValue(this.arg0),
+  getNumElements: jest.fn().mockReturnValue(config.reserveWatch.windowSize),
+  getSum: jest.fn().mockReturnValue(0),
+  getAverage: jest.fn().mockReturnValue(0),
+  getStandardDeviation: jest.fn().mockReturnValue(0),
+  addElement: jest.fn().mockReturnValue(0),
 };
 
 // creates a mock class implementation with constructor
@@ -97,8 +97,8 @@ describe('Aave reserve price agent', () => {
     it('returns empty if reserve price swing is below threshold', async () => {
       // mock RollingMath to return a large average
       const overrides = {
-        getAverage: () => jest.fn(() => new BigNumber('1e300')),
-        getStandardDeviation: jest.fn(() => new BigNumber('1e300')),
+        getAverage: jest.fn().mockReturnValue(new BigNumber('1e300')),
+        getStandardDeviation: jest.fn().mockReturnValue(new BigNumber('1e300')),
       };
 
       const res = mockLibrary(baseRollingMath, overrides);
@@ -114,9 +114,9 @@ describe('Aave reserve price agent', () => {
 
     it('returns empty if reserve price swing is above threshold but not enough blocks have been seen yet', async () => {
       const overrides = {
-        getAverage: jest.fn(() => new BigNumber(0)),
-        getStandardDeviation: jest.fn(() => new BigNumber(0)),
-        getNumElements: jest.fn(() => config.windowSize - 1),
+        getAverage: jest.fn().mockReturnValue(new BigNumber(0)),
+        getStandardDeviation: jest.fn().mockReturnValue(new BigNumber(0)),
+        getNumElements: jest.fn().mockReturnValue(config.windowSize - 1),
       };
 
       const res = mockLibrary(baseRollingMath, overrides);
@@ -131,8 +131,8 @@ describe('Aave reserve price agent', () => {
 
     it('returns findings if reserve price swing is above threshold', async () => {
       const overrides = {
-        getAverage: jest.fn(() => new BigNumber(0)),
-        getStandardDeviation: jest.fn(() => new BigNumber(0)),
+        getAverage: jest.fn().mockReturnValue(new BigNumber(0)),
+        getStandardDeviation: jest.fn().mockReturnValue(new BigNumber(0)),
       };
 
       const res = mockLibrary(baseRollingMath, overrides);
