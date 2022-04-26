@@ -1,8 +1,0 @@
-{
-  "totalValueAndLiquidity": {
-    "windowSize": 1000,
-    "numStds": 2,
-    "minElements": 40
-  },
-  "aaveEverestId": "0x55d07cab60a86966a01680e2242c4af4080a5566"
-}
