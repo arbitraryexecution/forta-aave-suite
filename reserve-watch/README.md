@@ -12,7 +12,7 @@ This bot monitors large Aave reserve price changes.
 
 <!-- -->
 - AE-AAVE-RESERVE-PRICE
-  - Fired when an AAVE reserve price changes more than `numStds` standard deviations
+  - Fired when an AAVE reserve price changes more than `numStdDeviations` standard deviations
   - Severity is always set to "medium"
   - Type is always set to "suspicious"
   - Metadata field contains symbol and price

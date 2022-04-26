@@ -8,7 +8,7 @@
   },
   "reserveWatch" : {
     "windowSize": 10,
-    "numStds" : 3,
+    "numStdDeviations" : 3,
     "type": "Suspicious",
     "severity": "Medium"
   }

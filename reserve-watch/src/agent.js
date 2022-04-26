@@ -72,7 +72,7 @@ function provideInitialize(data) {
     const { ProtocolDataProvider: dataProviderAddress } = config.contractAddresses;
     const { PriceOracle: priceOracleAddress } = config.contractAddresses;
     const {
-      windowSize, numStds, type, severity,
+      windowSize, numStdDeviations, type, severity,
     } = config.reserveWatch;
 
     // create ethers.js contracts
@@ -90,7 +90,7 @@ function provideInitialize(data) {
     // create rolling math object structure
     data.rollingReservePrices = {};
     data.windowSize = windowSize;
-    data.standardDeviations = numStds;
+    data.standardDeviations = numStdDeviations;
     /* eslint-enable no-param-reassign */
   };
 }
