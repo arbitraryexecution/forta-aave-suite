@@ -19,8 +19,8 @@ function createAlert(metadata, initData) {
     metadata: {
       field,
       reserve,
-      observation,
-      average,
+      observation: observation.toString(),
+      average: average.toString(),
     },
   });
 }
