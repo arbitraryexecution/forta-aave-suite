@@ -35,10 +35,10 @@ const {
 const { handleTransaction } = require('./agent');
 
 /**
- * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
+ * TransactionEvent(type, network, transaction, traces, addresses, block, logs, contractAddress)
  */
 function createTxEvent(transaction) {
-  return new TransactionEvent(null, null, transaction, null, [], null, null);
+  return new TransactionEvent(null, null, transaction, [], [], null, [], []);
 }
 
 // tests

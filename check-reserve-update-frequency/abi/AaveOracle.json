@@ -1,7 +1,4 @@
 {
-  "_format": "hh-sol-artifact-1",
-  "contractName": "AaveOracle",
-  "sourceName": "contracts/misc/AaveOracle.sol",
   "abi": [
     {
       "inputs": [
@@ -240,9 +237,5 @@
       "stateMutability": "nonpayable",
       "type": "function"
     }
-  ],
-  "bytecode": "",
-  "deployedBytecode": "",
-  "linkReferences": {},
-  "deployedLinkReferences": {}
+  ]
 }

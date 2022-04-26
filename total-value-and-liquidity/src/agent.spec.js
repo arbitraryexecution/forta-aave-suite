@@ -64,7 +64,7 @@ describe('liquidity and total value locked agent tests', () => {
     initializeData.lendingPoolContract.getReservesList.mockResolvedValue(['0xMOCKRESERVEADDRESS']);
     initializeData.dataProviderContract.getReserveData.mockResolvedValue(mockData);
 
-    // clear and reset rolling-math mocks
+    // clear and reset rolling-math mocks to default values
     RollingMath.mockClear();
     mockNumElements.mockReturnValue(0);
     mockSum.mockReturnValue(new BigNumber(0));

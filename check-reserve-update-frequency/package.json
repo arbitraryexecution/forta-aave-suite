@@ -1,6 +1,6 @@
 {
   "name": "forta-aave-stale-price-oracle",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Bot that monitors price oracle data to see if it has not been updated in over 24 hours",
   "scripts": {
     "start": "npm run start:dev",

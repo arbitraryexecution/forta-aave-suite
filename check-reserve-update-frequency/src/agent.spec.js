@@ -26,8 +26,7 @@ const {
   BlockEvent, FindingType, FindingSeverity, Finding,
 } = require('forta-agent');
 const BigNumber = require('bignumber.js');
-const { provideInitialize } = require('./agent-setup');
-const { provideHandleBlock } = require('./agent');
+const { provideInitialize, provideHandleBlock } = require('./agent');
 
 function createBlockEvent(block) {
   return new BlockEvent(0, 1, block);

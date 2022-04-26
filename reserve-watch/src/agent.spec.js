@@ -20,56 +20,26 @@ jest.mock('forta-agent', () => ({
 const {
   BlockEvent, Finding, FindingType, FindingSeverity, ethers,
 } = require('forta-agent');
-const RollingMath = require('rolling-math');
 const BigNumber = require('bignumber.js');
 const { provideInitialize, provideHandleBlock } = require('./agent');
 const config = require('../bot-config.json');
 
-jest.mock('rolling-math');
+// create mock functions for mocking the rolling-math module
+const mockNumElements = jest.fn().mockReturnValue(config.reserveWatch.windowSize);
+const mockSum = jest.fn();
+const mockAverage = jest.fn();
+const mockStandardDeviation = jest.fn();
+const mockAddElement = jest.fn().mockReturnValue(0);
 
-// setup mocks for rolling math library
-const baseRollingMath = {
+// mock the rolling-math module
+jest.mock('rolling-math', () => jest.fn().mockImplementation(() => ({
   getWindowSize: jest.fn().mockReturnValue(this.arg0),
-  getNumElements: jest.fn().mockReturnValue(config.reserveWatch.windowSize),
-  getSum: jest.fn().mockReturnValue(0),
-  getAverage: jest.fn().mockReturnValue(0),
-  getStandardDeviation: jest.fn().mockReturnValue(0),
-  addElement: jest.fn().mockReturnValue(0),
-};
-
-// creates a mock class implementation with constructor
-// returns references to mocked funcs
-function mockLibrary(baseMockLibrary, overrides) {
-  const mockImplementation = jest.fn((...args) => {
-    // funcs will contain the mocked classes function definitions
-    // first add the base unimplemented classes
-
-    const funcs = {
-      ...baseMockLibrary,
-    };
-
-    // update constructor arguments, they can be referenced inside of the function
-    // implementations with the name `arg0`, `arg1`, ..., `argN`
-    Object.entries(args).forEach((entry) => {
-      const idx = 1;
-      funcs['arg'.concat(entry[0])] = entry[idx];
-    });
-
-    // override function definitions and constructor arguments
-    Object.assign(funcs, overrides);
-
-    return funcs;
-  });
-
-  // return the mock implementation and handles to all mock functions
-  return {
-    mockImplementation,
-    mockFunctions: {
-      ...baseMockLibrary,
-      ...overrides,
-    },
-  };
-}
+  getNumElements: mockNumElements,
+  getSum: mockSum,
+  getAverage: mockAverage,
+  getStandardDeviation: mockStandardDeviation,
+  addElement: mockAddElement,
+})));
 
 // helper function for creating mock block events
 function createBlockEvent(block) {
@@ -91,18 +61,19 @@ describe('Aave reserve price agent', () => {
     // initialize the handler
     await (provideInitialize(initializeData))();
     handleBlock = provideHandleBlock(initializeData);
+
+    // reset rolling-math mocks to default values
+    mockNumElements.mockReturnValue(config.reserveWatch.windowSize);
+    mockSum.mockReturnValue(new BigNumber(0));
+    mockAverage.mockReturnValue(new BigNumber(0));
+    mockStandardDeviation.mockReturnValue(new BigNumber(0));
   });
 
   describe('Reserve Monitoring', () => {
     it('returns empty if reserve price swing is below threshold', async () => {
-      // mock RollingMath to return a large average
-      const overrides = {
-        getAverage: jest.fn().mockReturnValue(new BigNumber('1e300')),
-        getStandardDeviation: jest.fn().mockReturnValue(new BigNumber('1e300')),
-      };
-
-      const res = mockLibrary(baseRollingMath, overrides);
-      RollingMath.mockImplementation(res.mockImplementation);
+      // mock RollingMath to return a large average and standard deviation
+      mockAverage.mockReturnValue(new BigNumber('1e300'));
+      mockStandardDeviation.mockReturnValue(new BigNumber('1e300'));
 
       // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);
@@ -113,14 +84,9 @@ describe('Aave reserve price agent', () => {
     });
 
     it('returns empty if reserve price swing is above threshold but not enough blocks have been seen yet', async () => {
-      const overrides = {
-        getAverage: jest.fn().mockReturnValue(new BigNumber(0)),
-        getStandardDeviation: jest.fn().mockReturnValue(new BigNumber(0)),
-        getNumElements: jest.fn().mockReturnValue(config.windowSize - 1),
-      };
-
-      const res = mockLibrary(baseRollingMath, overrides);
-      RollingMath.mockImplementation(res.mockImplementation);
+      mockAverage.mockReturnValue(new BigNumber(0));
+      mockStandardDeviation.mockReturnValue(new BigNumber(0));
+      mockNumElements.mockReturnValue(config.windowSize - 1);
 
       // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);
@@ -130,13 +96,8 @@ describe('Aave reserve price agent', () => {
     });
 
     it('returns findings if reserve price swing is above threshold', async () => {
-      const overrides = {
-        getAverage: jest.fn().mockReturnValue(new BigNumber(0)),
-        getStandardDeviation: jest.fn().mockReturnValue(new BigNumber(0)),
-      };
-
-      const res = mockLibrary(baseRollingMath, overrides);
-      RollingMath.mockImplementation(res.mockImplementation);
+      mockAverage.mockReturnValue(new BigNumber(0));
+      mockStandardDeviation.mockReturnValue(new BigNumber(0));
 
       // get the first round of prices and initialize RollingMath objects
       await handleBlock(blockEvent);

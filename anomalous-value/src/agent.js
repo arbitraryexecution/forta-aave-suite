@@ -9,6 +9,7 @@ const { getAbi } = require('./utils');
 // load config
 const config = require('../bot-config.json');
 
+// set up a variable to hold initialization data used in the handler
 const initializeData = {};
 
 // helper function to create alerts

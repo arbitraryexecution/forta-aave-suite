@@ -1,7 +1,4 @@
 {
-  "_format": "hh-sol-artifact-1",
-  "contractName": "AggregatorV3Interface",
-  "sourceName": "contracts/src/v0.6/interfaces/AggregatorV3Interface.sol",
   "abi": [
     {
       "inputs": [],
@@ -114,9 +111,5 @@
       "stateMutability": "view",
       "type": "function"
     }
-  ],
-  "bytecode": "",
-  "deployedBytecode": "",
-  "linkReferences": {},
-  "deployedLinkReferences": {}
+  ]
 }

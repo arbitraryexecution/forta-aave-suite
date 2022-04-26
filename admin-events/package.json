@@ -1,6 +1,6 @@
 {
   "name": "forta-aave-admin-events",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Bot that monitors transactions for Aave administrative events",
   "scripts": {
     "start": "npm run start:dev",
