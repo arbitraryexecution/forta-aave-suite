@@ -59,7 +59,7 @@ function provideInitialize(data) {
     // therefore, we will generate the first alert, then suppress any additional alerts over a 24
     // hour period, counting the number that would have been generated, then generate another alert
     // when the 24 hour time period has expired
-    // create an array of token / oracle / fallback / alerts tuples that we will iterate over
+    // create an array of token / oracle / fallback / alerts objects that we will iterate over
     const tokenContractFallbackAlertTuples = reserveTokens.map((reserveToken) => ({
       reserveToken,
       aaveOracleContractInstance,

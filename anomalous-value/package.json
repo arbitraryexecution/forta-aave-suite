@@ -1,7 +1,7 @@
 {
   "name": "forta-aave-anomalous-value",
   "version": "0.0.5",
-  "description": "Bot that monitors Aave lending pool transactions that cross a predefined threshold amount",
+  "description": "Bot that monitors Aave lending pool transactions that exceed a threshold amount",
   "scripts": {
     "start": "npm run start:dev",
     "start:dev": "nodemon --watch src --watch forta.config.json -e js,json --exec 'forta-agent run'",

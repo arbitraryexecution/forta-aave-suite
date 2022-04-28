@@ -1,7 +1,7 @@
 {
   "name": "forta-aave-address-watch",
   "version": "0.0.5",
-  "description": "Bot that monitors addresses defined in a config file to see if they are involved in any transactions",
+  "description": "Bot that monitors addresses defined in a config file to see if they initiated any transactions",
   "scripts": {
     "start": "npm run start:dev",
     "start:dev": "nodemon --watch src --watch forta.config.json -e js,json --exec 'forta-agent run'",

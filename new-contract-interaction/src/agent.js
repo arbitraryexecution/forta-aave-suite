@@ -146,10 +146,10 @@ function provideHandleTransaction(data) {
 
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
-            if (result.value.code !== '0x') { // if theres code, then its a contract
+            if (result.value.code !== '0x') { // if there's code, then it's a contract
               contractResults[result.value.transactionAddress] = result.value.code;
             } else {
-              eoaAddresses.push(result.value.transactionAddress); // if no code, then its an EOA
+              eoaAddresses.push(result.value.transactionAddress); // if no code, then it's an EOA
             }
           }
         });

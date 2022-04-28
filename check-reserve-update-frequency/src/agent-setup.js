@@ -71,7 +71,7 @@ function provideInitialize(data) {
       ),
     );
 
-    // create an array of token / address / contract tuples that we will iterate over
+    // create an array of token / address / contract objects that we will iterate over
     const tokenAddressContractTuples = reserveTokenArray.map((reserveToken, index) => {
       const priceSourceAddress = priceSourceAddresses[index];
       const priceSourceContract = priceSourceContractInstances[index];

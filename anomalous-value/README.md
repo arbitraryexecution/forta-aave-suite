@@ -2,7 +2,7 @@
 
 ## Description
 
-This bot monitors Aave lending pool transactions that cross a predefined threshold amount.
+This bot monitors Aave lending pool transactions that exceed a threshold amount.
 
 ## Supported Chains
 

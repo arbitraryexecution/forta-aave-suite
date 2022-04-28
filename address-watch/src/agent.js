@@ -14,7 +14,7 @@ const {
 function createAlert(contractAddress, contractName, type, severity) {
   return Finding.fromObject({
     name: `${protocolName} Address Watch`,
-    description: `Address ${contractAddress} (${contractName}) was involved in a transaction`,
+    description: `Address ${contractAddress} (${contractName}) initiated a transaction`,
     alertId: `${developerAbbrev}-${protocolAbbrev}-ADDRESS-WATCH`,
     type: FindingType[type],
     severity: FindingSeverity[severity],

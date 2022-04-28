@@ -74,7 +74,7 @@ describe('watch admin addresses', () => {
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: `${mockJSON.protocolName} Address Watch`,
-          description: `Address ${address} (${contractName}) was involved in a transaction`,
+          description: `Address ${contractAddress} (${contractName}) initiated a transaction`,
           alertId: `${mockJSON.developerAbbreviation}-${mockJSON.protocolAbbrev}-ADDRESS-WATCH`,
           type: FindingType[type],
           severity: FindingSeverity[severity],
@@ -99,7 +99,7 @@ describe('watch admin addresses', () => {
       expect(findings).toStrictEqual([
         Finding.fromObject({
           name: `${mockJSON.protocolName} Address Watch`,
-          description: `Address ${address} (${contractName}) was involved in a transaction`,
+          description: `Address ${contractAddress} (${contractName}) initiated a transaction`,
           alertId: `${mockJSON.developerAbbreviation}-${mockJSON.protocolAbbrev}-ADDRESS-WATCH`,
           type: FindingType[type],
           severity: FindingSeverity[severity],
