@@ -105,10 +105,16 @@ function provideHandleBlock(data) {
     const reserveAssets = await protocolDataProvider.getAllReservesTokens({ ...override });
 
     // generate findings for each asset and catch exceptions so Promise.all does not bail early
-    const findings = (await Promise.all(reserveAssets.map(
-      (reserve) => checkReservePrice(reserve, override, data).catch((e) => console.error(e)),
-    ))).flat();
+    const promises = reserveAssets.map(async (reserve) => {
+      try {
+        return await checkReservePrice(reserve, override, data);
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    });
 
+    const findings = (await Promise.all(promises)).flat();
     return findings;
   };
 }

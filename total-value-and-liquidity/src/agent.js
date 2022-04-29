@@ -68,19 +68,18 @@ function provideHandleBlock(data) {
     const reserves = await lendingPoolContract.getReservesList({ ...override });
 
     // create array containing a promise that returns the data for each reserve
-    const reserveDataPromises = [];
-    reserves.forEach((reserve) => {
-      // RPC call per reserve data
-      const dataPromise = dataProviderContract.getReserveData(reserve, { ...override });
-      reserveDataPromises.push(
-        parseData(dataPromise, reserve, dataFields).catch(() => undefined),
-      );
+    const reserveDataPromises = reserves.map(async (reserve) => {
+      try {
+        // RPC call per reserve data
+        const promise = dataProviderContract.getReserveData(reserve, { ...override });
+        return await parseData(promise, reserve, dataFields);
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
     });
 
-    // resolve our requests
-    const resolved = (await Promise.all(reserveDataPromises)).filter(
-      (result) => result !== undefined,
-    );
+    const resolved = (await Promise.all(reserveDataPromises)).flat();
 
     // process the data
     resolved.forEach((reserveData) => {

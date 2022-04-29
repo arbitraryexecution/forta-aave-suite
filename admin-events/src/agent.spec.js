@@ -24,17 +24,11 @@ describe('admin event monitoring', () => {
   const iface = new ethers.utils.Interface([mockEventSignature]);
   const mockEventFragment = iface.getEvent(mockEventName);
   const mockEventTopic = iface.getEventTopic(mockEventFragment);
-  const logSignature = iface
-    .getEvent(mockEventName)
-    .format(ethers.utils.FormatTypes.minimal)
-    .substring(6);
 
   // logs data for test case: address match + topic match (should trigger a finding)
   const logsMatchEvent = [
     {
-      name: mockContractName,
       address: mockContractAddress,
-      signature: logSignature,
       topics: [
         mockEventTopic,
       ],
@@ -45,9 +39,7 @@ describe('admin event monitoring', () => {
   // logs data for test case: address match + no topic match
   const logsNoMatchEvent = [
     {
-      name: '',
       address: mockContractAddress,
-      signature: '',
       topics: [
         ethers.constants.HashZero,
       ],

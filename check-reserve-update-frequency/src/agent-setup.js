@@ -23,10 +23,12 @@ const ORACLE_AGE_THRESHOLD_SECONDS = config.oracleAgeThresholdSeconds;
 // Gemini Dollar uses ExtendedGusdPriceProxy source: 0xEc6f4Cd64d28Ef32507e2dc399948aAe9Bbedd7e
 // xSUSHI Token uses XSushiPriceAdapter source: 0x9b26214bEC078E68a394AaEbfbffF406Ce14893F
 // Wrapped Ether uses Black Hole source: 0x0000000000000000000000000000000000000000
+// ENS uses a Chainlink aggregator with a deprecated function call
 const TOKENS_WITHOUT_CHAINLINK_ABI = [
   '0x056Fd409E1d7A124BD7017459dFEa2F387b6d5Cd', // Gemini Dollar
   '0x8798249c2E607446EfB7Ad49eC89dD1865Ff4272', // xSUSHI Token
   '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // Wrapped Ether
+  '0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72', // ENS
 ];
 
 function provideInitialize(data) {

@@ -27,12 +27,7 @@ async function checkOracleAge(tokenAddressContract, override, blockTimestamp, da
   const { reserveToken, priceSourceAddress, priceSourceContract } = tokenAddressContract;
 
   // get the timestamp from the price source contract
-  let roundData;
-  try {
-    roundData = await priceSourceContract.latestRoundData({ ...override });
-  } catch (error) {
-    return [];
-  }
+  const roundData = await priceSourceContract.latestRoundData({ ...override });
 
   // the updatedAt value is of type ethers.BigNumber
   // ethers.BigNumber is not the same as BigNumber from bignumber.js
@@ -67,11 +62,16 @@ function provideHandleBlock(data) {
     // forEach does not work with async and promises
     // attach a .catch() method to each promise to prevent any rejections from causing Promise.all
     // from failing fast
-    const findings = (await Promise.all(tokensAddressesContracts.map(
-      (tokenAddressContract) => checkOracleAge(tokenAddressContract, override, blockTimestamp, data)
-        .catch((error) => console.error(error)),
-    ))).flat();
+    const promises = tokensAddressesContracts.map(async (tokenAddressContract) => {
+      try {
+        return await checkOracleAge(tokenAddressContract, override, blockTimestamp, data);
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    });
 
+    const findings = (await Promise.all(promises)).flat();
     return findings;
   };
 }

@@ -6,11 +6,18 @@ const {
 const { provideHandleTransaction, provideInitialize } = require('./agent');
 const { getAbi } = require('./utils');
 
-const config = require('../bot-config.json');
-
 // pull information from config file which will be used for testing
-const { address, windowSize } = config.contract.LendingPool;
-const abi = getAbi(config.contract.LendingPool.abiFile);
+const {
+  contract: {
+    LendingPool: {
+      address,
+      windowSize,
+      abiFile,
+    },
+  },
+} = require('../bot-config.json');
+
+const abi = getAbi(abiFile);
 const iface = new ethers.utils.Interface(abi);
 
 // constants for test

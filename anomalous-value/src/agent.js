@@ -85,15 +85,16 @@ function provideHandleTransaction(data) {
       const amount = new BigNumber(log.args.amount.toHexString());
 
       // if we haven't seen this reserve yet, initialize it
-      if (!rollingEventData[log.args.reserve]) {
-        rollingEventData[log.args.reserve] = new RollingMath(windowSize);
+      const { reserve } = log.args;
+      if (!rollingEventData[reserve]) {
+        rollingEventData[reserve] = new RollingMath(windowSize);
       }
 
       // only process data for alerts if we have seen a significant number of blocks
-      if (rollingEventData[log.args.reserve].getNumElements() >= windowSize) {
+      if (rollingEventData[reserve].getNumElements() >= windowSize) {
         // if we have seen this before, check for anomalous value
-        const average = rollingEventData[log.args.reserve].getAverage();
-        const standardDeviation = rollingEventData[log.args.reserve].getStandardDeviation();
+        const average = rollingEventData[reserve].getAverage();
+        const standardDeviation = rollingEventData[reserve].getStandardDeviation();
 
         // limit is set from agent-config.json file
         const limit = standardDeviation.times(standardDeviations);
@@ -108,7 +109,7 @@ function provideHandleTransaction(data) {
       }
 
       // update rolling data
-      rollingEventData[log.args.reserve].addElement(amount);
+      rollingEventData[reserve].addElement(amount);
     });
 
     return findings;

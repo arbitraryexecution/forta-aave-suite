@@ -76,25 +76,8 @@ function provideInitialize(data) {
     data.protocolAbbreviation = config.protocolAbbreviation;
 
     data.contracts = Object.entries(data.contractInfo).map(([name, entry]) => {
-      const {
-        thresholdBlockCount,
-        thresholdTransactionCount,
-        address,
-        filteredAddresses,
-        findingType,
-        findingSeverity,
-      } = entry.newContractEOA;
-
-      const contract = {
-        name,
-        address,
-        filteredAddresses,
-        thresholdBlockCount,
-        thresholdTransactionCount,
-        findingType,
-        findingSeverity,
-      };
-
+      const contract = { ...entry.newContractEOA };
+      contract.name = name;
       return contract;
     });
   /* eslint-enable no-param-reassign */
@@ -124,10 +107,7 @@ function provideHandleTransaction(data) {
         findingSeverity,
       } = contract;
 
-      let exclusions = [
-        address,
-      ];
-      exclusions = exclusions.concat(filteredAddresses);
+      const exclusions = [address, ...filteredAddresses];
       // filter transaction addresses to remove specified addresses
       const filteredTransactionAddresses = transactionAddresses
         .filter((item) => !exclusions.includes(item));

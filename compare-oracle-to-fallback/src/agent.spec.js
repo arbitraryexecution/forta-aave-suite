@@ -28,15 +28,13 @@ const {
 const BigNumber = require('bignumber.js');
 
 const { provideInitialize, provideHandleBlock, calculatePercentError } = require('./agent');
-const config = require('../bot-config.json');
-
-const ALERT_MINIMUM_INTERVAL_SECONDS = config.alertMinimumIntervalSeconds;
 
 function createBlockEvent(block) {
   return new BlockEvent(0, 1, block);
 }
 
 describe('Aave oracle versus fallback oracle agent', () => {
+  const alertMinimumIntervalSeconds = 86400; // 24 hours
   let initializeData;
   let handleBlock;
 
@@ -46,10 +44,13 @@ describe('Aave oracle versus fallback oracle agent', () => {
     // initialize the handler
     await (provideInitialize(initializeData))();
     handleBlock = provideHandleBlock(initializeData);
+
+    initializeData.percentErrorThreshold = 2;
+    initializeData.alertMinIntervalSeconds = alertMinimumIntervalSeconds;
   });
 
   describe('Fallback Price Oracle Monitoring', () => {
-    it('returns findings if percent error between oracle and fallback is > 2% and last alert was created more than 24 hours ago', async () => {
+    it('returns findings if percent error between oracle and fallback is greater than the threshold and the last alert was created more than 24 hours ago', async () => {
       // create an oracle asset price an a fallback oracle price that will trigger an alert
       const assetPriceOracle = new BigNumber(100);
       const assetPriceFallback = new BigNumber(97.9);
@@ -58,7 +59,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const blockTimestamp = 1234567890;
 
       // create a timestamp for when the last alert was triggered, greater than 24 hours ago
-      const tStart = blockTimestamp - ALERT_MINIMUM_INTERVAL_SECONDS - 1;
+      const tStart = blockTimestamp - alertMinimumIntervalSeconds - 1;
 
       // set the return values for the mocked oracles and token alert time since last triggered
       initializeData.tokenContractFallbackAlertTuples[0].aaveOracleContractInstance.getAssetPrice
@@ -107,7 +108,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const blockTimestamp = 1234567890;
 
       // create a timestamp for when the last alert was triggered, less than 24 hours ago
-      const tStart = blockTimestamp - ALERT_MINIMUM_INTERVAL_SECONDS + 1;
+      const tStart = blockTimestamp - alertMinimumIntervalSeconds + 1;
 
       // set the return values for the mocked oracles and token alert time since last triggered
       initializeData.tokenContractFallbackAlertTuples[0].aaveOracleContractInstance.getAssetPrice
@@ -132,7 +133,76 @@ describe('Aave oracle versus fallback oracle agent', () => {
       expect(tokenAlert.numAlertsInLastDay).toStrictEqual(1);
     });
 
-    it('returns no findings if percent error is <= 2%', async () => {
+    it('returns the correct number of alerts in last 24 hour period when a finding is generated', async () => {
+      // create an oracle asset price an a fallback oracle price that will trigger an alert
+      const assetPriceOracle = new BigNumber(100);
+      const assetPriceFallback = new BigNumber(0);
+
+      // create a timestamp
+      let blockTimestamp = 1234567890;
+
+      // create a timestamp for when the last alert was triggered, less than 24 hours ago
+      const tStart = blockTimestamp - alertMinimumIntervalSeconds + 1;
+
+      // set the return values for the mocked oracles and token alert time since last triggered
+      initializeData.tokenContractFallbackAlertTuples[0].aaveOracleContractInstance
+        .getAssetPrice
+        .mockResolvedValueOnce(assetPriceOracle);
+      initializeData.tokenContractFallbackAlertTuples[0].fallbackOracleContractInstance
+        .getAssetPrice
+        .mockResolvedValueOnce(assetPriceFallback);
+      initializeData.tokenContractFallbackAlertTuples[0].tokenAlert.tStart = tStart;
+
+      // need to create blockEvent (with .block.timestamp and .blockNumber)
+      let mockedBlockEvent = createBlockEvent({
+        blockNumber: 12345,
+        timestamp: blockTimestamp,
+      });
+
+      // we expect no alerts because the previous alert occurred within the last 24 hours
+      expect(await handleBlock(mockedBlockEvent)).toStrictEqual([]);
+
+      // now set the block timestamp to be greater than 24 hours ago
+      blockTimestamp += alertMinimumIntervalSeconds;
+      mockedBlockEvent = createBlockEvent({
+        blockNumber: 23456,
+        timestamp: blockTimestamp,
+      });
+
+      // set the return values for the mocked oracles
+      initializeData.tokenContractFallbackAlertTuples[0].aaveOracleContractInstance
+        .getAssetPrice
+        .mockResolvedValueOnce(assetPriceOracle);
+      initializeData.tokenContractFallbackAlertTuples[0].fallbackOracleContractInstance
+        .getAssetPrice
+        .mockResolvedValueOnce(assetPriceFallback);
+
+      // create expected finding
+      const percentError = calculatePercentError(assetPriceOracle, assetPriceFallback);
+      const expectedFinding = Finding.fromObject({
+        name: `Aave Fallback Oracle Price Difference for ${mockReserveToken.symbol}`,
+        description:
+          `Token: ${mockReserveToken.symbol}, Price: ${assetPriceOracle}, Fallback Price: `
+          + `${assetPriceFallback}, Number of alerts in last 24 hours: 1`,
+        alertId: 'AE-AAVE-FALLBACK-ORACLE-DISPARITY',
+        severity: FindingSeverity.High,
+        type: FindingType.Degraded,
+        metadata: {
+          symbol: mockReserveToken.symbol,
+          tokenAddress: mockReserveToken.tokenAddress,
+          tokenPrice: assetPriceOracle,
+          tokenPriceFallback: assetPriceFallback,
+          percentError,
+          numAlertsInLastDay: 1,
+        },
+      });
+
+      // we expect to trigger an alert based on:
+      //  the percent error and the last alert age being > 24 hrs
+      expect(await handleBlock(mockedBlockEvent)).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns no findings if percent error is below the threshold', async () => {
       // create an oracle asset price an a fallback oracle price that will trigger an alert
       const assetPriceOracle = new BigNumber(100);
       const assetPriceFallback = new BigNumber(98);
@@ -141,7 +211,7 @@ describe('Aave oracle versus fallback oracle agent', () => {
       const blockTimestamp = 1234567890;
 
       // create a timestamp for when the last alert was triggered, greater than 24 hours ago
-      const tStart = blockTimestamp - ALERT_MINIMUM_INTERVAL_SECONDS - 1;
+      const tStart = blockTimestamp - alertMinimumIntervalSeconds - 1;
 
       // set the return values for the mocked oracles and token alert time since last triggered
       initializeData.tokenContractFallbackAlertTuples[0].aaveOracleContractInstance.getAssetPrice

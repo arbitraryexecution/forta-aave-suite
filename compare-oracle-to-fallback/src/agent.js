@@ -2,8 +2,6 @@ const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 const BigNumber = require('bignumber.js');
 
 const {
-  AAVE_ORACLE_PERCENT_ERROR_THRESHOLD,
-  ALERT_MINIMUM_INTERVAL_SECONDS,
   initializeData,
   provideInitialize,
 } = require('./agent-setup');
@@ -48,6 +46,8 @@ async function checkOracleAndFallback(tokenContractFallbackAlert, override, bloc
     tokenAlert,
   } = tokenContractFallbackAlert;
 
+  const { percentErrorThreshold, alertMinIntervalSeconds } = data;
+
   // get the asset price from the oracle
   const oraclePriceEthers = await aaveOracleContractInstance.getAssetPrice(
     reserveToken.tokenAddress,
@@ -70,18 +70,14 @@ async function checkOracleAndFallback(tokenContractFallbackAlert, override, bloc
   const percentError = calculatePercentError(oraclePrice, fallbackPrice);
 
   // check if the value exceeds the threshold
-  if (percentError.isGreaterThan(AAVE_ORACLE_PERCENT_ERROR_THRESHOLD)) {
+  if (percentError.isGreaterThan(percentErrorThreshold)) {
     // if less than 24 hours have elapsed, just increment the counter for the number of alerts
     // that would have been generated
-    if (blockTimestamp.minus(tokenAlert.tStart) < ALERT_MINIMUM_INTERVAL_SECONDS) {
+    if (blockTimestamp.minus(tokenAlert.tStart) < alertMinIntervalSeconds) {
       tokenAlert.numAlertsInLastDay += 1;
     } else {
-      // restart the alert counter for this token
-      tokenAlert.numAlertsInLastDay = 0;
-      tokenAlert.tStart = new BigNumber(blockTimestamp.toString());
-
       // create the alert
-      return createAlert(
+      const finding = createAlert(
         reserveToken,
         oraclePrice,
         fallbackPrice,
@@ -89,6 +85,12 @@ async function checkOracleAndFallback(tokenContractFallbackAlert, override, bloc
         tokenAlert,
         data,
       );
+
+      // restart the alert counter for this token
+      tokenAlert.numAlertsInLastDay = 0;
+      tokenAlert.tStart = new BigNumber(blockTimestamp.toString());
+
+      return finding;
     }
   }
 
@@ -109,11 +111,16 @@ function provideHandleBlock(data) {
     // forEach does not work with async and promises
     // attach a .catch() method to each promise to prevent any rejections from causing Promise.all
     // from failing fast
-    const findings = (await Promise.all(tokenContractFallbackAlertTuples.map(
-      (tokenContracts) => checkOracleAndFallback(tokenContracts, override, blockTimestamp, data)
-        .catch((error) => console.error(error)),
-    ))).flat();
+    const promises = tokenContractFallbackAlertTuples.map(async (tokenContracts) => {
+      try {
+        return await checkOracleAndFallback(tokenContracts, override, blockTimestamp, data);
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    });
 
+    const findings = (await Promise.all(promises)).flat();
     return findings;
   };
 }

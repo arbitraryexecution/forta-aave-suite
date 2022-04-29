@@ -12,11 +12,6 @@ const config = require('../bot-config.json');
 // set up a variable to hold initialization data used in the handler
 const initializeData = {};
 
-// percent error threshold over which we trigger alerts
-// percent error = (absolute(oracle - fallbackOracle) / oracle) * 100
-const AAVE_ORACLE_PERCENT_ERROR_THRESHOLD = config.aaveOraclePercentErrorThreshold;
-const ALERT_MINIMUM_INTERVAL_SECONDS = config.alertMinimumIntervalSeconds;
-
 function provideInitialize(data) {
   return async function initialize() {
     /* eslint-disable no-param-reassign */
@@ -75,13 +70,16 @@ function provideInitialize(data) {
     data.protocolAbbrev = config.protocolAbbreviation;
     data.developerAbbrev = config.developerAbbreviation;
     data.tokenContractFallbackAlertTuples = tokenContractFallbackAlertTuples;
+
+    // percent error threshold over which we trigger alerts
+    // percent error = (absolute(oracle - fallbackOracle) / oracle) * 100
+    data.percentErrorThreshold = config.aaveOraclePercentErrorThreshold;
+    data.alertMinIntervalSeconds = config.alertMinimumIntervalSeconds;
     /* eslint-enable no-param-reassign */
   };
 }
 
 module.exports = {
-  AAVE_ORACLE_PERCENT_ERROR_THRESHOLD,
-  ALERT_MINIMUM_INTERVAL_SECONDS,
   initializeData,
   provideInitialize,
 };

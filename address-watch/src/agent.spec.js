@@ -59,12 +59,17 @@ describe('watch admin addresses', () => {
 
     it('returns a finding if the transaction originator is on the watch list', async () => {
       const [contractName] = Object.keys(mockJSON.contracts);
-      const { address } = mockJSON.contracts[contractName];
-      const { type, severity } = mockJSON.contracts[contractName].watch;
+      const {
+        address: contractAddress,
+        watch: {
+          type,
+          severity,
+        },
+      } = mockJSON.contracts[contractName];
 
       // build txEvent
       const txEvent = createTxEvent({
-        from: address.toLowerCase(),
+        from: contractAddress.toLowerCase(),
       });
 
       // run bot with txEvent
@@ -84,12 +89,17 @@ describe('watch admin addresses', () => {
 
     it('returns a finding if the transaction originator is on the watch list and contains a mix of uppercase and lowercase letters in its address', async () => {
       const contractName = Object.keys(mockJSON.contracts)[1];
-      const { address } = mockJSON.contracts[contractName];
-      const { type, severity } = mockJSON.contracts[contractName].watch;
+      const {
+        address: contractAddress,
+        watch: {
+          type,
+          severity,
+        },
+      } = mockJSON.contracts[contractName];
 
       // build txEvent
       const txEvent = createTxEvent({
-        from: address.toLowerCase(),
+        from: contractAddress.toLowerCase(),
       });
 
       // run bot with txEvent

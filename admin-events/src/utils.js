@@ -7,8 +7,8 @@ function getAbi(abiName) {
 }
 
 function getEventSignatures(contract, events) {
-  // given an ethers contract object and a list of event names, return a list of full event
-  // signatures
+  // given a contract object which contains an ethers.js interface and a list of event names,
+  // return a list of full event signatures
   const eventSignatures = [];
   const { iface } = contract;
 

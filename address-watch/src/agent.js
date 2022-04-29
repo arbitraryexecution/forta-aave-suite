@@ -1,15 +1,12 @@
 const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 
-// load config file
-const config = require('../bot-config.json');
-
 // load configuration data from bot config file
 const {
   developerAbbreviation: developerAbbrev,
   protocolName,
   protocolAbbrev,
   contracts,
-} = config;
+} = require('../bot-config.json');
 
 function createAlert(contractAddress, contractName, type, severity) {
   return Finding.fromObject({
@@ -25,9 +22,14 @@ async function handleTransaction(txEvent) {
   const findings = [];
   const { from } = txEvent.transaction;
 
-  Object.keys(contracts).forEach((contractName) => {
-    const { address } = contracts[contractName];
-    const { type, severity } = contracts[contractName].watch;
+  Object.entries(contracts).forEach(([contractName, values]) => {
+    const {
+      address,
+      watch: {
+        type,
+        severity,
+      },
+    } = values;
 
     // check if an address in the config file was the initiator of the transaction
     if (from === address.toLowerCase()) {

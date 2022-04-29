@@ -55,13 +55,8 @@ function provideInitialize(data) {
         iface,
       };
 
+      contract.eventSignatures = getEventSignatures(contract, entry.events);
       return contract;
-    });
-
-    data.contracts.forEach((contract) => {
-      const eventList = data.adminEvents[contract.name].events;
-      const eventSignatures = getEventSignatures(contract, eventList);
-      contract.eventSignatures = eventSignatures;
     });
 
     /* eslint-enable no-param-reassign */
