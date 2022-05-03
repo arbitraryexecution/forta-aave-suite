@@ -1,7 +1,7 @@
 const BigNumber = require('bignumber.js');
 const RollingMath = require('rolling-math');
 const { Finding, FindingSeverity, FindingType } = require('forta-agent');
-const { provideInitialize, initializeData } = require('./agent-setup');
+const { provideInitialize, initializeData } = require('./bot-setup');
 
 // helper function to create alerts
 function createAlert(metadata, initData) {

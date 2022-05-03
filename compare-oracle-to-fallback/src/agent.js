@@ -4,7 +4,7 @@ const BigNumber = require('bignumber.js');
 const {
   initializeData,
   provideInitialize,
-} = require('./agent-setup');
+} = require('./bot-setup');
 
 // helper function to create alerts
 function createAlert(

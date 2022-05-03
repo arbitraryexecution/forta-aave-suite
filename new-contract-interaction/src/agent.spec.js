@@ -55,7 +55,7 @@ describe('mock ethers getCode request', () => {
   });
 });
 
-/* agent tests */
+/* bot tests */
 describe('new contract interaction monitoring', () => {
   let initializeData;
   let handleTransaction;
@@ -86,7 +86,7 @@ describe('new contract interaction monitoring', () => {
         block: { number: 10 },
       });
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions
@@ -110,7 +110,7 @@ describe('new contract interaction monitoring', () => {
       // intentionally setup the getCode function to throw an error
       mockEthersProvider.getCode.mockImplementation(async () => { throw new Error('FAILED'); });
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions
@@ -134,7 +134,7 @@ describe('new contract interaction monitoring', () => {
       mockEthersProvider.getCode.mockReturnValueOnce(mockGetCodeResponseContract);
       mockEthersProvider.getCode.mockReturnValueOnce(mockGetCodeResponseContract);
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       expect(findings).toStrictEqual([]);
@@ -154,7 +154,7 @@ describe('new contract interaction monitoring', () => {
         block: { number: 10 },
       });
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions
@@ -179,7 +179,7 @@ describe('new contract interaction monitoring', () => {
       mockEthersProvider.getCode.mockResolvedValueOnce(mockGetCodeResponseContract);
       mockEthersProvider.getCode.mockResolvedValueOnce(mockGetCodeResponseNewContract);
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       const expectedFindings = [];
@@ -223,7 +223,7 @@ describe('new contract interaction monitoring', () => {
       mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
       mockEthersProvider.getTransactionCount.mockResolvedValue(10);
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions
@@ -249,7 +249,7 @@ describe('new contract interaction monitoring', () => {
       mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
       mockEthersProvider.getTransactionCount.mockResolvedValue(transactionCount);
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions

@@ -33,7 +33,7 @@ function createBlockEvent(block) {
   return new BlockEvent(0, 1, block);
 }
 
-describe('Aave oracle versus fallback oracle agent', () => {
+describe('Aave oracle versus fallback oracle bot', () => {
   const alertMinimumIntervalSeconds = 86400; // 24 hours
   let initializeData;
   let handleBlock;

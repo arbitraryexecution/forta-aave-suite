@@ -46,7 +46,7 @@ function createBlockEvent(block) {
   return new BlockEvent(0, 1, block);
 }
 
-describe('Aave reserve price agent', () => {
+describe('Aave reserve price bot', () => {
   let handleBlock;
   let initializeData;
 

@@ -1,7 +1,7 @@
 const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 const BigNumber = require('bignumber.js');
 
-const { ORACLE_AGE_THRESHOLD_SECONDS, initializeData, provideInitialize } = require('./agent-setup');
+const { ORACLE_AGE_THRESHOLD_SECONDS, initializeData, provideInitialize } = require('./bot-setup');
 
 // helper function to create alerts
 function createAlert(

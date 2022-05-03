@@ -84,7 +84,7 @@ function createTxEvent({ logs, addresses }) {
 }
 
 // tests
-describe('aave anomalous value agent', () => {
+describe('aave anomalous value bot', () => {
   let initializeData;
   let handleTransaction;
 
@@ -109,7 +109,7 @@ describe('aave anomalous value agent', () => {
         addresses: { [zeroAddress]: true },
       });
 
-      // run agent with txEvent
+      // run bot with txEvent
       const findings = await handleTransaction(txEvent);
 
       // assertions
@@ -129,7 +129,7 @@ describe('aave anomalous value agent', () => {
         addresses: { [address]: true },
       });
 
-      // run agent with txEvent, should update averages
+      // run bot with txEvent, should update averages
       for (let i = 0; i < windowSize; i++) {
         // eslint-disable-next-line no-await-in-loop
         const finding = await handleTransaction(txEvent);

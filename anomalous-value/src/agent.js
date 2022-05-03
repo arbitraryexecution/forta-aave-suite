@@ -96,7 +96,7 @@ function provideHandleTransaction(data) {
         const average = rollingEventData[reserve].getAverage();
         const standardDeviation = rollingEventData[reserve].getStandardDeviation();
 
-        // limit is set from agent-config.json file
+        // limit is set from bot-config.json file
         const limit = standardDeviation.times(standardDeviations);
         const delta = amount.minus(average).absoluteValue();
 

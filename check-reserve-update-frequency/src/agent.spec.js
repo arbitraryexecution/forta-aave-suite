@@ -32,7 +32,7 @@ function createBlockEvent(block) {
   return new BlockEvent(0, 1, block);
 }
 
-describe('AAVE reserve price oracle agent', () => {
+describe('AAVE reserve price oracle bot', () => {
   let initializeData;
   let handleBlock;
 

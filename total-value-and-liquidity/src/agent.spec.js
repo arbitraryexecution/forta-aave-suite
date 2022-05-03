@@ -39,7 +39,7 @@ const BigNumber = require('bignumber.js');
 const { provideInitialize, provideHandleBlock } = require('./agent');
 const config = require('../bot-config.json');
 
-describe('liquidity and total value locked agent tests', () => {
+describe('liquidity and total value locked bot tests', () => {
   // handles to things we will use during testing
   let handleBlock;
   let initializeData;
