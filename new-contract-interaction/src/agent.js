@@ -2,7 +2,7 @@ const {
   Finding, FindingSeverity, FindingType, getEthersProvider,
 } = require('forta-agent');
 
-// load configuration data from agent config file
+// load configuration data from bot config file
 const config = require('../bot-config.json');
 
 // set up a variable to hold initialization data used in the handler
