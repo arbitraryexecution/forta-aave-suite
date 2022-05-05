@@ -8,7 +8,7 @@ const {
   getEventInfo,
 } = require('./utils');
 
-// load any agent configuration parameters
+// load any bot configuration parameters
 const config = require('../bot-config.json');
 
 // set up a variable to hold initialization data used in the handler
@@ -54,8 +54,7 @@ function provideInitialize(data) {
       lendingPoolAddressesProviderAbi,
       data.provider,
     );
-    const lendingPoolAddress = await data.lendingPoolAddressesProviderContract.getLendingPool();
-    data.lendingPoolAddress = lendingPoolAddress;
+    data.lendingPoolAddress = await data.lendingPoolAddressesProviderContract.getLendingPool();
 
     // create a new interface for LendingPool
     const lendingPoolAbi = getAbi(lendingPool.abiFile);

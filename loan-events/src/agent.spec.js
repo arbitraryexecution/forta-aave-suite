@@ -33,7 +33,7 @@ function createTransactionEvent(txObject) {
     null,
     null,
     [],
-    [],
+    {},
     null,
     txObject.logs,
     null,
@@ -75,6 +75,9 @@ describe('check bot configuration file', () => {
       // only check that an address exists for the LendingPoolAddressesProvider entry
       if (key === 'LendingPoolAddressesProvider') {
         expect(address).not.toBe(undefined);
+        
+        // check that the address is a valid address
+        expect(ethers.utils.isHexString(address, 20)).toBe(true);
       }
 
       // load the ABI from the specified file
@@ -128,9 +131,7 @@ describe('monitor emitted events', () => {
       await (provideInitialize(initializeData))();
       handleTransaction = provideHandleTransaction(initializeData);
 
-      protocolName = config.protocolName;
-      protocolAbbreviation = config.protocolAbbreviation;
-      developerAbbreviation = config.developerAbbreviation;
+      ({ protocolName, protocolAbbreviation, developerAbbreviation } = config);
 
       // grab the 'LendingPool' entry from the 'contracts' key in the configuration file
       const {
@@ -141,11 +142,12 @@ describe('monitor emitted events', () => {
       const { abiFile, events } = lendingPool;
       abi = utils.getAbi(abiFile);
 
-      const results = getEventFromConfig(abi, events);
-      eventInConfig = results.eventInConfig;
-      eventNotInConfig = results.eventNotInConfig;
-      findingType = results.findingType;
-      findingSeverity = results.findingSeverity;
+      ({
+        eventInConfig,
+        eventNotInConfig,
+        findingType,
+        findingSeverity
+      } = getEventFromConfig(abi, events));
 
       if (eventInConfig === undefined) {
         throw new Error('Could not extract valid event from configuration file');
@@ -178,12 +180,9 @@ describe('monitor emitted events', () => {
       mockTxEvent = createTransactionEvent({
         logs: [
           {
-            name: '',
             address: '',
-            signature: '',
             topics: [],
             data: '0x',
-            args: [],
           },
         ],
       });
@@ -201,15 +200,9 @@ describe('monitor emitted events', () => {
 
       // update mock transaction event
       const [defaultLog] = mockTxEvent.logs;
-      defaultLog.name = contractName;
       defaultLog.address = ethers.constants.AddressZero;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(eventInConfig.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
 
       const findings = await handleTransaction(mockTxEvent);
 
@@ -222,15 +215,9 @@ describe('monitor emitted events', () => {
 
       // update mock transaction event
       const [defaultLog] = mockTxEvent.logs;
-      defaultLog.name = contractName;
       defaultLog.address = mockContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(eventNotInConfig.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
 
       const findings = await handleTransaction(mockTxEvent);
 
@@ -244,15 +231,9 @@ describe('monitor emitted events', () => {
 
       // update mock transaction event
       const [defaultLog] = mockTxEvent.logs;
-      defaultLog.name = contractName;
       defaultLog.address = mockContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(eventInConfig.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
 
       const findings = await handleTransaction(mockTxEvent);
       const expectedFinding = Finding.fromObject({
