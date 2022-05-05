@@ -1,64 +1,50 @@
-// required libraries
-const BigNumber = require('bignumber.js');
-const { createBlockEvent } = require('forta-agent');
+// create mock initialize values
+const mockReserveToken = { symbol: 'FAKE1', tokenAddress: '0xFIRSTFAKETOKENADDRESS' };
+const mockOracleAddress = '0xMOCKORACLEADDRESS';
+const mockAssetSourceAddress = '0xMOCKASSETSOURCEADDRESS';
 
-// mock the initializeTokensContracts async function before importing the agent module
-// the agent module will then receive our mocked version of the function
-// if we did not perform this step, we would (intermittently) receive errors during test execution:
-//   'Jest did not exit one second after the test run has completed.'
-// due to the fact that the initializeTokensContracts function is executed whenever any part of the
-// agent module is imported
-// therefore, we must mock that function before the agent module is imported, thereby giving our
-// mocked version of the function to all subsquent imports that use it
-jest.mock('./agent-setup', () => ({
-  ...jest.requireActual('./agent-setup'),
-  initializeTokensContracts: jest.fn().mockResolvedValue(),
+// create a mock contract that contains the methods used when initializing the bot
+const mockCombinedContract = {
+  getAllReservesTokens: jest.fn().mockResolvedValue([mockReserveToken]),
+  getPriceOracle: jest.fn().mockResolvedValue(mockOracleAddress),
+  getSourceOfAsset: jest.fn().mockResolvedValue(mockAssetSourceAddress),
+  latestRoundData: jest.fn(),
+};
+
+// combine the mocked provider and contracts into the ethers import mock
+jest.mock('forta-agent', () => ({
+  ...jest.requireActual('forta-agent'),
+  getEthersProvider: jest.fn(),
+  ethers: {
+    ...jest.requireActual('ethers'),
+    Contract: jest.fn().mockReturnValue(mockCombinedContract),
+  },
 }));
 
-const { createAlert } = require('./agent-setup');
-const { provideHandleBlock } = require('./agent');
+// required libraries
+const {
+  BlockEvent, FindingType, FindingSeverity, Finding,
+} = require('forta-agent');
+const BigNumber = require('bignumber.js');
+const { provideInitialize, provideHandleBlock } = require('./agent');
 
-describe('AAVE reserve price oracle agent', () => {
+function createBlockEvent(block) {
+  return new BlockEvent(0, 1, block);
+}
+
+describe('AAVE reserve price oracle bot', () => {
+  let initializeData;
   let handleBlock;
 
-  // this function allows us to mock the behavior of the initializeTokensContracts function
-  // in production, that function:
-  //   - gets an Array of reserve token addresses from the Protocol Data Provider contract
-  //   - gets the Price Oracle address from the  Lending Pool Address Provider contract
-  //   - gets the Price Source address for each reserve token address
-  //   - gets the Price Source contract for each reserve token address
-  //   - returns an Array of Tuples, where each Tuple has the form:
-  //     (reserve token address, price source contract address, price source contract ethers object)
-  function mockTokensAddressesContractPromise(mockTimestamp) {
-    // create an array of reserve tokens
-    const reserveTokens = [
-      { symbol: 'FAKE1', tokenAddress: '0xFIRSTFAKETOKENADDRESS' },
-    ];
+  beforeEach(async () => {
+    initializeData = {};
 
-    // create an array of contract addresses that correspond to the reserve tokens
-    const contractAddresses = [
-      '0xFIRSTFAKECONTRACTADDRESS',
-    ];
+    // initialize the handler
+    await (provideInitialize(initializeData))();
+    handleBlock = provideHandleBlock(initializeData);
 
-    // create the Array of Tuples of token addresses / contract addresses / contract objects
-    // pass our mockTimestamp in to the mocked return value (roundData.updatedAt) to facilitate
-    // testing against different timestamp conditions
-    const tokenAddressesContractTuples = reserveTokens.map((reserveToken, index) => {
-      const priceSourceAddress = contractAddresses[index];
-      // need to create mock contract that has .latestRoundData method and returns roundData
-      const priceSourceContract = {
-        latestRoundData: jest.fn(() => Promise.resolve({
-          updatedAt: new BigNumber(mockTimestamp),
-        })),
-      };
-      return { reserveToken, priceSourceAddress, priceSourceContract };
-    });
-
-    // wrap the Array of Tuples in a Promise (which we will resolve immediately)
-    // the original function returns a Promise that is resolved when all contract interactions have
-    // finished
-    return Promise.resolve(tokenAddressesContractTuples);
-  }
+    initializeData.tokenAddressContractTuples[0].priceSourceContract.latestRoundData.mockClear();
+  });
 
   describe('Reserve Price Oracle Monitoring', () => {
     it('returns findings if price oracle age is more than 24 hours old', async () => {
@@ -70,20 +56,27 @@ describe('AAVE reserve price oracle agent', () => {
       // need to create blockEvent (with .block.timestamp and .blockNumber)
       const mockedBlockEvent = createBlockEvent({
         blockNumber: 12345,
-        block: {
-          timestamp: blockTimestamp,
-        },
+        timestamp: blockTimestamp,
       });
 
-      // create the mocked promise to pass in to provideHandleBlock
-      const tokensAddressesContracts = await mockTokensAddressesContractPromise(updatedAtTimestamp);
-
-      // create the block handler
-      handleBlock = provideHandleBlock(tokensAddressesContracts);
+      // update the mocked latestRoundData contract function to return updatedAtTimestamp
+      initializeData.tokenAddressContractTuples[0].priceSourceContract.latestRoundData
+        .mockResolvedValue({ updatedAt: updatedAtTimestamp });
 
       // create expected finding
-      const { reserveToken, priceSourceAddress } = tokensAddressesContracts[0];
-      const expectedFinding = createAlert(reserveToken, oracleAgeTooOld, priceSourceAddress);
+      const expectedFinding = Finding.fromObject({
+        name: `Aave Stale Price Oracle Data for ${mockReserveToken.symbol}`,
+        description: `Token ${mockReserveToken.symbol} Price Oracle Age: ${oracleAgeTooOld} seconds`,
+        alertId: 'AE-AAVE-PRICE-ORACLE-STALE',
+        severity: FindingSeverity.Medium,
+        type: FindingType.Degraded,
+        metadata: {
+          symbol: mockReserveToken.symbol,
+          tokenAddress: mockReserveToken.tokenAddress,
+          oracleAge: oracleAgeTooOld,
+          priceSourceAddress: mockAssetSourceAddress,
+        },
+      });
 
       // we expect to trigger an alert based on the oracle being one second too old (24 hr + 1 sec)
       expect(await handleBlock(mockedBlockEvent)).toStrictEqual([expectedFinding]);
@@ -98,16 +91,12 @@ describe('AAVE reserve price oracle agent', () => {
       // need to create blockEvent (with .block.timestamp and .blockNumber)
       const mockedBlockEvent = createBlockEvent({
         blockNumber: 12345,
-        block: {
-          timestamp: blockTimestamp,
-        },
+        timestamp: blockTimestamp,
       });
 
-      // create the mocked promise to pass in to provideHandleBlock
-      const tokensAddressesContracts = await mockTokensAddressesContractPromise(updatedAtTimestamp);
-
-      // create the block handler
-      handleBlock = provideHandleBlock(tokensAddressesContracts);
+      // update the mocked latestRoundData contract function to return updatedAtTimestamp
+      initializeData.tokenAddressContractTuples[0].priceSourceContract.latestRoundData
+        .mockResolvedValue({ updatedAt: updatedAtTimestamp });
 
       // we expect not to trigger an alert based on the oracle being updated less than 24 hours ago
       expect(await handleBlock(mockedBlockEvent)).toStrictEqual([]);

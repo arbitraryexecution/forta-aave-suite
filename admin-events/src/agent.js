@@ -1,64 +1,105 @@
-const { Finding, FindingSeverity, FindingType } = require('forta-agent');
+const {
+  Finding, FindingSeverity, FindingType, ethers,
+} = require('forta-agent');
 
-// load config files
-const contractAddresses = require('../contract-addresses.json');
-const adminEvents = require('./admin-events.json');
+const { getAbi, getEventSignatures } = require('./utils');
 
-const { aaveEverestId: AAVE_EVEREST_ID } = require('../agent-config.json');
+// load config data
+const config = require('../bot-config.json');
 
-// get contract names for mapping to events
-let contractNames = Object.keys(contractAddresses);
+// set up a variable to hold initialization data used in the handler
+const initializeData = {};
 
-// returns the list of events for a given contract
-function getEvents(contractName) {
-  const events = adminEvents[contractName];
-  if (events === undefined) {
-    return []; // no events for this contract
-  }
-  return events;
+function createAlert(
+  contractAddress, contractName, eventName, developerAbbrev, protocolName, protocolAbbrev,
+) {
+  return Finding.fromObject({
+    name: `${protocolName} Admin Event`,
+    description: `The ${eventName} event was emitted by the ${contractName} contract`,
+    alertId: `${developerAbbrev}-${protocolAbbrev}-ADMIN-EVENT`,
+    type: FindingType.Suspicious,
+    severity: FindingSeverity.Low,
+    metadata: {
+      contractName,
+      contractAddress,
+      eventName,
+    },
+  });
 }
 
-// prune contract names that don't have any associated events
-contractNames = contractNames.filter((name) => (getEvents(name).length !== 0));
+function provideInitialize(data) {
+  return async function initialize() {
+    /* eslint-disable no-param-reassign */
+    // assign configurable fields
+    data.adminEvents = config.contracts;
+    data.protocolName = config.protocolName;
+    data.protocolAbbreviation = config.protocolAbbreviation;
+    data.developerAbbreviation = config.developerAbbreviation;
 
-async function handleTransaction(txEvent) {
-  const findings = [];
-  const { hash } = txEvent.transaction;
-
-  // iterate over each contract name to get the address and events
-  contractNames.forEach((contractName) => {
-    // for each contract name, lookup the address
-    const contractAddress = contractAddresses[contractName].toLowerCase();
-    const events = getEvents(contractName);
-
-    // for each contract address, check for event matches
-    events.forEach((eventName) => {
-      // console.log("DEBUG: contract=" + contractAddress + ", event=" + eventName);
-      const eventLog = txEvent.filterEvent(eventName, contractAddress);
-      if (eventLog.length !== 0) {
-        findings.push(
-          Finding.fromObject({
-            name: 'Aave Admin Event',
-            description: `The ${eventName} event was emitted by the ${contractName} contract`,
-            alertId: 'AE-AAVE-ADMIN-EVENT',
-            type: FindingType.Suspicious,
-            severity: FindingSeverity.Low,
-            metadata: {
-              hash,
-              contractName,
-              contractAddress,
-              eventName,
-            },
-            everestId: AAVE_EVEREST_ID,
-          }),
-        );
+    // load the contract addresses, abis, and ethers interfaces
+    data.contracts = Object.entries(data.adminEvents).map(([name, entry]) => {
+      if (entry.address === undefined) {
+        throw new Error(`No address found in configuration file for '${name}'`);
       }
-    });
-  });
 
-  return findings;
+      if (entry.abiFile === undefined) {
+        throw new Error(`No ABI file found in configuration file for '${name}'`);
+      }
+
+      const abi = getAbi(entry.abiFile);
+      const iface = new ethers.utils.Interface(abi);
+
+      const contract = {
+        name,
+        address: entry.address,
+        iface,
+      };
+
+      contract.eventSignatures = getEventSignatures(contract, entry.events);
+      return contract;
+    });
+
+    /* eslint-enable no-param-reassign */
+  };
+}
+
+function provideHandleTransaction(data) {
+  return async function handleTransaction(txEvent) {
+    const {
+      developerAbbreviation, protocolName, protocolAbbreviation, contracts,
+    } = data;
+    const findings = [];
+
+    // iterate over each contract to get the address and events
+    contracts.forEach((contract) => {
+      // for each contract name, lookup the address and respective event signatures
+      const { name, address, eventSignatures } = contract;
+
+      // for each contract address, check for event matches
+      const parsedLogs = txEvent.filterLog(eventSignatures, address);
+
+      // create a finding for each log in parsedLogs
+      parsedLogs.forEach((parsedLog) => {
+        findings.push(
+          createAlert(
+            address,
+            name,
+            parsedLog.name,
+            developerAbbreviation,
+            protocolName,
+            protocolAbbreviation,
+          ),
+        );
+      });
+    });
+
+    return findings;
+  };
 }
 
 module.exports = {
-  handleTransaction,
+  provideInitialize,
+  initialize: provideInitialize(initializeData),
+  provideHandleTransaction,
+  handleTransaction: provideHandleTransaction(initializeData),
 };

@@ -1,50 +1,52 @@
-const { createTransactionEvent } = require('forta-agent');
-const axios = require('axios');
-const agent = require('./agent');
-
-// mock response from Etherscan API
-// the 'timeStamp' field is the only one we need; all other fields have been removed
-// only needs one tx record (result[0])
-let mockTimestamp = 0;
-const mockEtherscanResponse = {
-  data: {
-    status: 1,
-    message: 'OK',
-    result: [
-      {
-        timeStamp: mockTimestamp, // seconds
-      },
-    ],
-  },
+const mockEthersProvider = {
+  getCode: jest.fn(),
+  getTransactionCount: jest.fn(),
 };
 
-// mock the axios module for etherscan API calls
-jest.mock('axios');
-axios.get.mockResolvedValue(mockEtherscanResponse);
+jest.mock('forta-agent', () => ({
+  ...jest.requireActual('forta-agent'),
+  getEthersProvider: jest.fn().mockReturnValue(mockEthersProvider),
+}));
+
+const { TransactionEvent } = require('forta-agent');
+const {
+  provideInitialize,
+  provideHandleTransaction,
+  createEOAInteractionAlert,
+  createContractInteractionAlert,
+} = require('./agent');
 
 // mock response from ethers BaseProvider.getCode()
 const mockGetCodeResponseEOA = '0x';
+const mockGetCodeResponseNewContract = '0x';
 const mockGetCodeResponseContract = '0xabcd';
 
-const mockEthersProvider = {
-  getCode: jest.fn(),
-};
+const filteredAddress = `0x3${'0'.repeat(39)}`;
+
+const config = require('../bot-config.json');
+
+// pull the contract to test from the config file
+const [testContract] = Object.keys(config.contracts);
+const { address: testContractAddress } = config.contracts[testContract].newContractEOA;
+
+// utility function specific for this test module
+// we are intentionally not using the Forta SDK function due to issues with
+// jest mocking the module and interfering with default function values
+function createTransactionEvent(txObject) {
+  const txEvent = new TransactionEvent(
+    null,
+    null,
+    txObject.transaction,
+    [],
+    txObject.addresses,
+    txObject.block,
+    [],
+    null,
+  );
+  return txEvent;
+}
 
 /* mock tests */
-
-describe('mock axios GET request', () => {
-  it('should call axios.get and return a response', async () => {
-    mockEtherscanResponse.data.result[0].timeStamp = 42;
-    const response = await axios.get('https://...');
-    expect(axios.get).toHaveBeenCalledTimes(1);
-    expect(response.data.result[0].timeStamp).toEqual(42);
-
-    // reset call count for next test
-    axios.get.mockClear();
-    expect(axios.get).toHaveBeenCalledTimes(0);
-  });
-});
-
 describe('mock ethers getCode request', () => {
   it('should call getCode and return a response', async () => {
     mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
@@ -53,44 +55,26 @@ describe('mock ethers getCode request', () => {
   });
 });
 
-/* agent tests */
-
+/* bot tests */
 describe('new contract interaction monitoring', () => {
-  let handleTransaction = null;
-  let mockData;
-  let mockProtocolDataProvider;
+  let initializeData;
+  let handleTransaction;
 
   // pass in mockEthers as the provider for handleTransaction() to use
-  beforeAll(() => {
-    mockData = [
-      { symbol: 'aUSDT', tokenAddress: '0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811' },
-      { symbol: 'aWBTC', tokenAddress: '0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656' },
-      { symbol: 'aAAVE', tokenAddress: '0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B' },
-    ];
-
-    mockProtocolDataProvider = {
-      getAllATokens: jest.fn(() => Promise.resolve(mockData)),
-    };
-
-    handleTransaction = agent.provideHandleTransaction(
-      mockEthersProvider,
-      mockProtocolDataProvider,
-    );
+  beforeEach(async () => {
+    initializeData = {};
+    await (provideInitialize(initializeData))();
+    handleTransaction = provideHandleTransaction(initializeData);
   });
 
   // reset function call count after each test
   afterEach(() => {
-    axios.get.mockClear();
     mockEthersProvider.getCode.mockClear();
-    axios.get.mockResolvedValue(mockEtherscanResponse);
+    mockEthersProvider.getTransactionCount.mockClear();
   });
 
   describe('handleTransaction', () => {
-    it('should have an Etherscan API key', () => {
-      expect(process.env.ETHERSCAN_API_KEY).not.toBe(undefined);
-    });
-
-    it('returns empty findings if the LendingPool contract is not invoked', async () => {
+    it('returns empty findings if no contracts are invoked', async () => {
       const txEvent = createTransactionEvent({
         transaction: {
           to: '0x1',
@@ -99,148 +83,199 @@ describe('new contract interaction monitoring', () => {
           '0x1': true,
           '0x2': true,
         },
-        block: { timestamp: Date.now() / 1000 },
+        block: { number: 10 },
       });
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions
-      expect(axios.get).toHaveBeenCalledTimes(0);
-      expect(findings).toStrictEqual([]);
-    });
-
-    it('returns empty findings if the invocation is not from a contract', async () => {
-      const txEvent = createTransactionEvent({
-        transaction: {
-          to: agent.lendingPoolAddress,
-        },
-        addresses: {
-          [agent.lendingPoolAddress]: true,
-          '0x1': true,
-        },
-        block: { timestamp: Date.now() / 1000 },
-      });
-
-      mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
-
-      // run forta agent
-      const findings = await handleTransaction(txEvent);
-
-      // check assertions
-      expect(axios.get).toHaveBeenCalledTimes(0);
       expect(findings).toStrictEqual([]);
     });
 
     it('returns empty findings if the getCode function throws an error', async () => {
+      const transactionAddress = '0x1';
+
       const txEvent = createTransactionEvent({
         transaction: {
-          to: agent.lendingPoolAddress,
+          to: testContractAddress,
         },
         addresses: {
-          [agent.lendingPoolAddress]: true,
-          '0x1': true,
+          [testContractAddress]: true,
+          [transactionAddress]: true,
         },
-        block: { timestamp: Date.now() / 1000 },
+        block: { number: 10 },
       });
 
       // intentionally setup the getCode function to throw an error
       mockEthersProvider.getCode.mockImplementation(async () => { throw new Error('FAILED'); });
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
 
       // check assertions
-      expect(axios.get).toHaveBeenCalledTimes(0);
-      expect(findings).toStrictEqual([]);
-    });
-
-    it('returns empty findings if the etherscan api call throws an error', async () => {
-      const address = '0x1';
-      const now = Date.now() / 1000;
-
-      const txEvent = createTransactionEvent({
-        transaction: {
-          to: agent.lendingPoolAddress,
-        },
-        addresses: {
-          [agent.lendingPoolAddress]: true,
-          [address]: true,
-        },
-        block: { timestamp: now },
-      });
-
-      mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseContract);
-
-      mockTimestamp = now - 86400 * 1; // 1 day = 86400 seconds
-      mockEtherscanResponse.data.result[0].timeStamp = mockTimestamp;
-
-      // intentionally setup the axios 'GET' request to throw an error
-      axios.get.mockImplementation(async () => { throw new Error('FAILED'); });
-
-      // run forta agent
-      const findings = await handleTransaction(txEvent);
-
-      // check assertions
-      expect(axios.get).toHaveBeenCalledTimes(1); // expect 1 call for the non-aave address
       expect(findings).toStrictEqual([]);
     });
 
     it('returns empty findings if the invocation is from an old contract', async () => {
-      const now = Date.now() / 1000;
+      const transactionAddress = '0x1';
+
       const txEvent = createTransactionEvent({
         transaction: {
-          to: agent.lendingPoolAddress,
+          to: testContractAddress,
         },
         addresses: {
-          [agent.lendingPoolAddress]: true,
-          '0x1': true,
+          [testContractAddress]: true,
+          [transactionAddress]: true,
         },
-        block: { timestamp: now },
+        block: { number: 1 },
       });
 
-      mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseContract);
-      mockTimestamp = now - 86400 * 7; // 1 day = 86400 seconds
-      mockEtherscanResponse.data.result[0].timeStamp = mockTimestamp;
+      mockEthersProvider.getCode.mockReturnValueOnce(mockGetCodeResponseContract);
+      mockEthersProvider.getCode.mockReturnValueOnce(mockGetCodeResponseContract);
 
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
-      const contractAge = agent.getContractAge(now, mockTimestamp);
+
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns empty findings if the invocation is from a filtered address', async () => {
+      const transactionAddress = filteredAddress;
+
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: testContractAddress,
+        },
+        addresses: {
+          [testContractAddress]: true,
+          [transactionAddress]: true,
+        },
+        block: { number: 10 },
+      });
+
+      // run forta bot
+      const findings = await handleTransaction(txEvent);
 
       // check assertions
-      expect(axios.get).toHaveBeenCalledTimes(1); // expect 1 call for the non-aave address
-      expect(contractAge).toEqual(7);
       expect(findings).toStrictEqual([]);
     });
 
     it('returns a finding if a new contract was involved in the transaction', async () => {
-      const address = '0x1';
-      const now = Date.now() / 1000;
+      const transactionAddress = '0x1';
+      const blockNumber = 10;
 
       const txEvent = createTransactionEvent({
         transaction: {
-          to: agent.lendingPoolAddress,
+          to: testContractAddress,
         },
         addresses: {
-          [agent.lendingPoolAddress]: true,
-          [address]: true,
+          [testContractAddress]: true,
+          [transactionAddress]: true,
         },
-        block: { timestamp: now },
+        block: { number: blockNumber },
       });
 
-      mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseContract);
+      mockEthersProvider.getCode.mockResolvedValueOnce(mockGetCodeResponseContract);
+      mockEthersProvider.getCode.mockResolvedValueOnce(mockGetCodeResponseNewContract);
 
-      mockTimestamp = now - 86400 * 1; // 1 day = 86400 seconds
-      mockEtherscanResponse.data.result[0].timeStamp = mockTimestamp;
-
-      // run forta agent
+      // run forta bot
       const findings = await handleTransaction(txEvent);
-      const contractAge = agent.getContractAge(now, mockTimestamp);
+
+      const expectedFindings = [];
+      initializeData.contracts.forEach((contract) => {
+        const {
+          name,
+          address,
+          findingType,
+          findingSeverity,
+        } = contract;
+
+        expectedFindings.push(createContractInteractionAlert(
+          name,
+          address,
+          transactionAddress,
+          findingType,
+          findingSeverity,
+          initializeData.protocolName,
+          initializeData.protocolAbbreviation,
+          initializeData.developerAbbreviation,
+        ));
+      });
+
+      expect(findings).toStrictEqual(expectedFindings);
+    });
+
+    it('returns empty findings if the invocation is from an old EOA', async () => {
+      const transactionAddress = '0x1';
+
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: testContractAddress,
+        },
+        addresses: {
+          [testContractAddress]: true,
+          [transactionAddress]: true,
+        },
+        block: { number: 10 },
+      });
+
+      mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
+      mockEthersProvider.getTransactionCount.mockResolvedValue(10);
+
+      // run forta bot
+      const findings = await handleTransaction(txEvent);
 
       // check assertions
-      expect(axios.get).toHaveBeenCalledTimes(1); // expect 1 call for the non-aave address
-      expect(contractAge).toEqual(1);
-      expect(findings).toStrictEqual([agent.createAlert(address, contractAge)]);
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns a finding if a new EOA was involved in the transaction', async () => {
+      const transactionAddress = '0x1';
+
+      const txEvent = createTransactionEvent({
+        transaction: {
+          to: testContractAddress,
+        },
+        addresses: {
+          [testContractAddress]: true,
+          [transactionAddress]: true,
+        },
+        block: { number: 10 },
+      });
+
+      const transactionCount = 1;
+
+      mockEthersProvider.getCode.mockResolvedValue(mockGetCodeResponseEOA);
+      mockEthersProvider.getTransactionCount.mockResolvedValue(transactionCount);
+
+      // run forta bot
+      const findings = await handleTransaction(txEvent);
+
+      // check assertions
+      const expectedFindings = [];
+      initializeData.contracts.forEach((contract) => {
+        const {
+          name,
+          address,
+          findingType,
+          findingSeverity,
+        } = contract;
+
+        expectedFindings.push(createEOAInteractionAlert(
+          name,
+          address,
+          transactionAddress,
+          transactionCount,
+          findingType,
+          findingSeverity,
+          initializeData.protocolName,
+          initializeData.protocolAbbreviation,
+          initializeData.developerAbbreviation,
+        ));
+      });
+
+      expect(findings).toStrictEqual(expectedFindings);
     });
   });
 });

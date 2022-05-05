@@ -1,126 +1,89 @@
-// required libraries
-const ethers = require('ethers');
-const BigNumber = require('bignumber.js');
+// create a mock contract that contains the methods used when initializing the bot
+const mockCombinedContract = {
+  getReservesList: jest.fn(),
+  getReserveData: jest.fn(),
+};
 
-// shared imports
+// create mock functions for mocking the rolling-math module
+const mockNumElements = jest.fn();
+const mockSum = jest.fn();
+const mockAverage = jest.fn();
+const mockStandardDeviation = jest.fn();
+const mockAddElement = jest.fn().mockReturnValue(0);
+
+// combine the mocked provider and contracts into the ethers import mock
+jest.mock('forta-agent', () => ({
+  ...jest.requireActual('forta-agent'),
+  getEthersProvider: jest.fn(),
+  ethers: {
+    ...jest.requireActual('ethers'),
+    Contract: jest.fn().mockReturnValue(mockCombinedContract),
+  },
+}));
+
+// mock the rolling-math module
+jest.mock('rolling-math', () => jest.fn().mockImplementation(() => ({
+  getWindowSize: jest.fn().mockReturnValue(this.arg0),
+  getNumElements: mockNumElements,
+  getSum: mockSum,
+  getAverage: mockAverage,
+  getStandardDeviation: mockStandardDeviation,
+  addElement: mockAddElement,
+})));
+
+const {
+  Finding, FindingType, FindingSeverity, ethers,
+} = require('forta-agent');
 const RollingMath = require('rolling-math');
-const { createAlert, dataFields } = require('./common');
+const BigNumber = require('bignumber.js');
+const { provideInitialize, provideHandleBlock } = require('./agent');
+const config = require('../bot-config.json');
 
-// handler to agent
-const {
-  provideHandleBlock,
-} = require('./agent');
-
-// mockable libraries
-jest.mock('rolling-math');
-
-// get config settings
-const {
-  totalValueAndLiquidity: Config,
-} = require('../agent-config.json');
-
-// creates a mock class implementation with constructor
-// returns references to mocked funcs
-function mockLibrary(baseMockLibrary) {
-  // mock instance function
-  function mockInstance(...args) {
-    // funcs will contain the mocked classes function definitions
-    // first add the base unimplemented classes
-    const funcs = {
-      ...baseMockLibrary,
-    };
-
-    // update constructor aruments, they can be referenced inside of the function
-    // implementations with the name `arg0`, `arg1`, ..., `argN`
-    Object.entries(args).forEach((entry) => {
-      const [key, value] = entry;
-      funcs['arg'.concat(key)] = value;
-    });
-
-    return funcs;
-  }
-
-  const mockImplementation = jest.fn(mockInstance);
-
-  // return the mock implementation and handles to all mock functions
-  return {
-    mockImplementation,
-    mockFunctions: {
-      ...baseMockLibrary,
-    },
-  };
-}
-
-describe('liquidity and total value locked agent tests', () => {
+describe('liquidity and total value locked bot tests', () => {
   // handles to things we will use during testing
   let handleBlock;
-  let mockLendingPool;
+  let initializeData;
   let mockData;
-  let mockDataProvider;
-  let mockRollingMath;
-  let mockRollingMathFuncs;
-  let mockConfig;
+  const { dataFields } = config.totalValueAndLiquidity;
 
   // we need to set up our testing environment for each test
-  beforeEach(() => {
-    // defaults must be reinitialized each test otherwise updating mock function implementations
-    // will actually be updating our default array and affect other tests
-    const baseRollingMath = {
-      getWindowSize: jest.fn(function getWindowSize() {
-        return this.arg0;
-      }),
-      getNumElements: jest.fn(() => 0),
-      getSum: jest.fn(() => new BigNumber(0)),
-      getAverage: jest.fn(() => new BigNumber(0)),
-      getStandardDeviation: jest.fn(() => new BigNumber(0)),
-      addElement: jest.fn(() => 0),
-    };
-
-    // mock the lending pool to always return our bogus address
-    mockLendingPool = {
-      getReservesList: jest.fn(() => Promise.resolve(
-        ['0xFAKEADDRESS'],
-      )),
-    };
-
+  beforeEach(async () => {
     // mockData contains the observations of the fields we look for in the handler
     mockData = {};
     dataFields.forEach((field) => {
       mockData[field] = ethers.BigNumber.from(0);
     });
 
-    // mock the data provider to return our observations
-    mockDataProvider = {
-      getReserveData: jest.fn(() => Promise.resolve(
-        mockData,
-      )),
-    };
+    initializeData = {};
 
-    // get instance of mocked rolling math library
-    const mockedLib = mockLibrary(baseRollingMath);
-    ({ mockImplementation: mockRollingMath, mockFunctions: mockRollingMathFuncs } = mockedLib);
+    // initialize the handler
+    await (provideInitialize(initializeData))();
+    handleBlock = provideHandleBlock(initializeData);
 
-    RollingMath.mockImplementation(mockRollingMath);
+    // reset contract mocks to initial values
+    initializeData.lendingPoolContract.getReservesList.mockResolvedValue(['0xMOCKRESERVEADDRESS']);
+    initializeData.dataProviderContract.getReserveData.mockResolvedValue(mockData);
 
-    mockConfig = { ...Config };
-
-    handleBlock = provideHandleBlock(
-      RollingMath, mockConfig, mockLendingPool, mockDataProvider,
-    );
+    // clear and reset rolling-math mocks to default values
+    RollingMath.mockClear();
+    mockNumElements.mockReturnValue(0);
+    mockSum.mockReturnValue(new BigNumber(0));
+    mockAverage.mockReturnValue(new BigNumber(0));
+    mockStandardDeviation.mockReturnValue(new BigNumber(0));
   });
 
   describe('configurations work for', () => {
     it('window size', async () => {
       // set window size to a unique and non default number
-      mockConfig.windowSize = 389003;
+      initializeData.windowSize = 389003;
 
       // run a block through
       await handleBlock({ blockNumber: 0 });
 
       // we should have a single instance of our rolling math library for each
       // data field, all with our custom size
-      expect(mockRollingMath).toBeCalledTimes(dataFields.length);
-      expect(mockRollingMath).toBeCalledWith(mockConfig.windowSize);
+      expect(RollingMath).toBeCalledTimes(dataFields.length);
+      expect(RollingMath).toBeCalledWith(initializeData.windowSize);
     });
 
     it('standard deviation limit', async () => {
@@ -128,30 +91,23 @@ describe('liquidity and total value locked agent tests', () => {
       await handleBlock({ blockNumber: 0 });
 
       // set standard deviation limit to a unique and non default number
-      mockConfig.numStds = 42;
+      initializeData.numStdDeviations = 45;
 
       // make our math module return more than minimum required elements
-      mockRollingMathFuncs.getNumElements.mockImplementation(
-        jest.fn(() => mockConfig.minElements + 1),
-      );
-
+      mockNumElements.mockReturnValue(initializeData.minElements + 1);
       // make our math module return predictable values
-      mockRollingMathFuncs.getAverage.mockImplementation(
-        jest.fn(() => new BigNumber(10)),
-      );
-      mockRollingMathFuncs.getStandardDeviation.mockImplementation(
-        jest.fn(() => new BigNumber(1)),
-      );
+      mockAverage.mockReturnValue(new BigNumber(10));
+      mockStandardDeviation.mockReturnValue(new BigNumber(1));
 
       // ensure observations below standard deviation we do not alert
-      mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10);
+      mockData.totalStableDebt = ethers.BigNumber.from(initializeData.numStdDeviations * 1 + 10);
 
       // since we are equal to but not passing the limit we should not get back
       // any findings
       expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
 
       // make observations larger than our standard deviation limit
-      mockData.totalStableDebt = ethers.BigNumber.from(mockConfig.numStds * 1 + 10 + 1);
+      mockData.totalStableDebt = ethers.BigNumber.from(initializeData.numStdDeviations * 1 + 11);
 
       // since we are outside of the limit, expect a finding
       expect(await handleBlock({ blockNumber: 0 })).not.toStrictEqual([]);
@@ -166,15 +122,13 @@ describe('liquidity and total value locked agent tests', () => {
       mockData.totalStableDebt = ethers.BigNumber.from(100);
 
       // set number of required elements to an arbitrary value
-      mockConfig.minElements = 1879;
+      initializeData.minElements = 1879;
 
       // since default getNumElements returns 0, we should not expect a finding
       expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
 
       // make our math library return a larger number of elements than required
-      mockRollingMathFuncs.getNumElements.mockImplementation(
-        jest.fn(() => mockConfig.minElements + 1),
-      );
+      mockNumElements.mockReturnValue(initializeData.minElements + 1);
 
       // now that we report a substantial number of elements, expect a finding
       expect(await handleBlock({ blockNumber: 0 })).not.toStrictEqual([]);
@@ -187,17 +141,13 @@ describe('liquidity and total value locked agent tests', () => {
       await handleBlock({ blockNumber: 0 });
 
       // set our standard deviation to be really large so it won't alert
-      mockRollingMathFuncs.getStandardDeviation.mockImplementation(
-        jest.fn(() => new BigNumber(9001)),
-      );
+      mockStandardDeviation.mockReturnValue(new BigNumber(9001));
 
       // set the number of elements to be sufficient
-      mockRollingMathFuncs.getNumElements.mockImplementation(
-        jest.fn(() => mockConfig.minElements + 1),
-      );
+      mockNumElements.mockReturnValue(initializeData.minElements + 1);
 
       // set large number of standard deviations to make the limit large
-      mockConfig.numStds = 10;
+      initializeData.numStdDeviations = 10;
 
       // expect a default finding of 0 to not be past the standard deviation
       expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
@@ -208,21 +158,17 @@ describe('liquidity and total value locked agent tests', () => {
       await handleBlock({ blockNumber: 0 });
 
       // set our standard deviation small so it will alert
-      mockRollingMathFuncs.getStandardDeviation.mockImplementation(
-        jest.fn(() => new BigNumber(1)),
-      );
+      mockStandardDeviation.mockReturnValue(new BigNumber(1));
 
       // set small number of standard deviations
-      mockConfig.numStds = 1;
+      initializeData.numStdDeviations = 1;
 
       // set finding to be outside of our standard deviation range
       // standard deviation * limit + anything to get outside the limit
       mockData.totalStableDebt = ethers.BigNumber.from(1 * 1 + 1);
 
       // set the number of elements to be insufficient
-      mockRollingMathFuncs.getNumElements.mockImplementation(
-        jest.fn(() => mockConfig.minElements - 1),
-      );
+      mockNumElements.mockReturnValue(initializeData.minElements - 1);
 
       // expect no finding because insufficient number of elements
       expect(await handleBlock({ blockNumber: 0 })).toStrictEqual([]);
@@ -240,7 +186,7 @@ describe('liquidity and total value locked agent tests', () => {
       // run another block to add our observation into our dataset
       await handleBlock({ blockNumber: 0 });
 
-      expect(mockRollingMathFuncs.addElement).toBeCalledWith(
+      expect(mockAddElement).toBeCalledWith(
         new BigNumber(mockData.totalStableDebt.toHexString()),
       );
 
@@ -250,7 +196,7 @@ describe('liquidity and total value locked agent tests', () => {
       // run another block to add our observation into our dataset
       await handleBlock({ blockNumber: 0 });
 
-      expect(mockRollingMathFuncs.addElement).toBeCalledWith(
+      expect(mockAddElement).toBeCalledWith(
         new BigNumber(mockData.totalStableDebt.toHexString()),
       );
     });
@@ -260,18 +206,18 @@ describe('liquidity and total value locked agent tests', () => {
       await handleBlock({ blockNumber: 0 });
 
       // a new dataset should have been created
-      expect(mockRollingMath).toBeCalledTimes(dataFields.length);
+      expect(RollingMath).toBeCalledTimes(dataFields.length);
 
-      // make our mocked lending pool return a new address
-      mockLendingPool.getReservesList.mockImplementation(jest.fn(
-        () => Promise.resolve(['0xANOTHERFAKEADDRESS']),
-      ));
+      // make our mocked lending pool return an additional address
+      initializeData.lendingPoolContract.getReservesList.mockResolvedValue(
+        ['0xMOCKRESERVEADDRESS', '0xANOTHERFAKEADDRESS'],
+      );
 
       // run a block to initialize the new data fields
       await handleBlock({ blockNumber: 0 });
 
       // a new dataset should have been created
-      expect(mockRollingMath).toBeCalledTimes(dataFields.length * 2);
+      expect(RollingMath).toBeCalledTimes(dataFields.length * 2);
     });
 
     it('will call provider functions with correct block numbers and addresses', async () => {
@@ -279,26 +225,24 @@ describe('liquidity and total value locked agent tests', () => {
       await handleBlock({ blockNumber: 9001 });
 
       // ensure that the last calls to our mock provider have the correct block number
-      expect(mockLendingPool.getReservesList).toBeCalledWith(
+      expect(initializeData.lendingPoolContract.getReservesList).toBeCalledWith(
         { blockTag: 9001 },
       );
-      expect(mockDataProvider.getReserveData).toBeCalledWith(
-        '0xFAKEADDRESS', { blockTag: 9001 },
+      expect(initializeData.dataProviderContract.getReserveData).toBeCalledWith(
+        '0xMOCKRESERVEADDRESS', { blockTag: 9001 },
       );
 
       // set address returned from mock lending pool to be different
-      mockLendingPool.getReservesList.mockImplementation(jest.fn(
-        () => Promise.resolve(['0xANOTHERFAKEADDRESS']),
-      ));
+      initializeData.lendingPoolContract.getReservesList.mockResolvedValue(['0xANOTHERFAKEADDRESS']);
 
       // make another call with a new block number
       await handleBlock({ blockNumber: 1337 });
 
       // ensure that the last calls to our mock provider have the correct block number
-      expect(mockLendingPool.getReservesList).toBeCalledWith(
+      expect(initializeData.lendingPoolContract.getReservesList).toBeCalledWith(
         { blockTag: 1337 },
       );
-      expect(mockDataProvider.getReserveData).toBeCalledWith(
+      expect(initializeData.dataProviderContract.getReserveData).toBeCalledWith(
         '0xANOTHERFAKEADDRESS', { blockTag: 1337 },
       );
     });
@@ -313,15 +257,20 @@ describe('liquidity and total value locked agent tests', () => {
       mockData.totalStableDebt = ethers.BigNumber.from(9001);
 
       // return large amount of elements
-      mockRollingMathFuncs.getNumElements.mockImplementation(
-        jest.fn(() => mockConfig.minElements + 1),
-      );
+      mockNumElements.mockReturnValue(initializeData.minElements + 1);
 
-      const alerts = ['totalStableDebt', 'totalDebt', 'totalValueLocked'].map((field) => createAlert({
-        field,
-        reserve: '0xFAKEADDRESS',
-        observation: '9001',
-        average: '0',
+      const alerts = ['totalStableDebt', 'totalDebt', 'totalValueLocked'].map((field) => Finding.fromObject({
+        name: `Anomalous Aave ${field} change`,
+        description: `Reserve 0xMOCKRESERVEADDRESS had a large change in ${field}`,
+        alertId: 'AE-AAVE-TVL',
+        severity: FindingSeverity.High,
+        type: FindingType.Suspicious,
+        metadata: {
+          field,
+          reserve: '0xMOCKRESERVEADDRESS',
+          observation: '9001',
+          average: '0',
+        },
       }));
 
       // expect findings to be equal

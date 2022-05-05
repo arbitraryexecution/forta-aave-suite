@@ -2,7 +2,7 @@
 
 ## Description
 
-This agent monitors liquidity, debt, and TVL for large changes.
+This bot monitors liquidity, debt, and TVL for large changes.
 
 ## Supported Chains
 
@@ -20,4 +20,4 @@ This agent monitors liquidity, debt, and TVL for large changes.
 
 ## Test Data
 
-To run all the tests for this agent, use the following command: `npm run test`
+To run all the tests for this bot, use the following command: `npm run test`

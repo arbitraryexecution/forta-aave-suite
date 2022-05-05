@@ -1,0 +1,21 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "totalValueAndLiquidity": {
+    "windowSize": 1000,
+    "numStdDeviations": 2,
+    "minElements": 40,
+    "dataFields": [
+      "availableLiquidity",
+      "totalStableDebt",
+      "totalVariableDebt",
+      "totalDebt",
+      "totalValueLocked"
+    ]
+  },
+  "contractAddresses": {
+    "LendingPool": "0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9",
+    "ProtocolDataProvider": "0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d"
+  }
+}

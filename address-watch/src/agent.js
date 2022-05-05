@@ -1,34 +1,40 @@
 const { Finding, FindingSeverity, FindingType } = require('forta-agent');
 
-// load config file
-const addressList = require('./address-watch.json');
+// load configuration data from bot config file
+const {
+  developerAbbreviation: developerAbbrev,
+  protocolName,
+  protocolAbbrev,
+  contracts,
+} = require('../bot-config.json');
 
-// load configuration data from agent config file
-const { aaveEverestId: AAVE_EVEREST_ID } = require('../agent-config.json');
-
-// get list of addresses to watch
-const addresses = Object.keys(addressList);
+function createAlert(contractAddress, contractName, type, severity) {
+  return Finding.fromObject({
+    name: `${protocolName} Address Watch`,
+    description: `Address ${contractAddress} (${contractName}) initiated a transaction`,
+    alertId: `${developerAbbrev}-${protocolAbbrev}-ADDRESS-WATCH`,
+    type: FindingType[type],
+    severity: FindingSeverity[severity],
+  });
+}
 
 async function handleTransaction(txEvent) {
   const findings = [];
-  const { from, hash } = txEvent.transaction;
+  const { from } = txEvent.transaction;
 
-  // check if an address in the watchlist was the initiator of the transaction
-  addresses.forEach((address) => {
+  Object.entries(contracts).forEach(([contractName, values]) => {
+    const {
+      address,
+      watch: {
+        type,
+        severity,
+      },
+    } = values;
+
+    // check if an address in the config file was the initiator of the transaction
     if (from === address.toLowerCase()) {
       findings.push(
-        Finding.fromObject({
-          name: 'Aave Address Watch',
-          description: `Address ${address} (${addressList[address]}) was involved in a transaction`,
-          alertId: 'AE-AAVE-ADDRESS-WATCH',
-          type: FindingType.Suspicious,
-          severity: FindingSeverity.Low,
-          metadata: {
-            from,
-            hash,
-          },
-          everestId: AAVE_EVEREST_ID,
-        }),
+        createAlert(address, contractName, type, severity),
       );
     }
   });
@@ -38,5 +44,4 @@ async function handleTransaction(txEvent) {
 
 module.exports = {
   handleTransaction,
-  addressList,
 };
