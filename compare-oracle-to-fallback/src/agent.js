@@ -108,9 +108,6 @@ function provideHandleBlock(data) {
     const blockTimestamp = new BigNumber(blockEvent.block.timestamp);
 
     // for each reserve token, get the price source address and timestamp
-    // forEach does not work with async and promises
-    // attach a .catch() method to each promise to prevent any rejections from causing Promise.all
-    // from failing fast
     const promises = tokenContractFallbackAlertTuples.map(async (tokenContracts) => {
       try {
         return await checkOracleAndFallback(tokenContracts, override, blockTimestamp, data);
