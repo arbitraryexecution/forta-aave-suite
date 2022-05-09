@@ -2,7 +2,7 @@
 
 ## Description
 
-This agent monitors price oracle data to see if it has not been updated in over 24 hours.
+This bot monitors price oracle data to see if it has not been updated in over 24 hours.
 
 ## Supported Chains
 
@@ -20,4 +20,4 @@ This agent monitors price oracle data to see if it has not been updated in over 
 
 ## Test Data
 
-To run all the tests for this agent, use the following command: `npm run test`
+To run all the tests for this bot, use the following command: `npm run test`

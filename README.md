@@ -2,7 +2,7 @@
 
 ## Description
 
-Forta agent suite that monitors various aspects of the Aave protocol.
+Forta bot suite that monitors various aspects of the Aave protocol.
 
 ## Supported Chains
 
@@ -10,8 +10,8 @@ Forta agent suite that monitors various aspects of the Aave protocol.
 
 ## Alerts
 
-See individual agent README files.
+See individual bot README files.
 
 ## Test Data
 
-See individual agent README files.
+See individual bot README files.

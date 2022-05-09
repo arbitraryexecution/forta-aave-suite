@@ -1,35 +1,32 @@
-const ethers = require('ethers');
 const BigNumber = require('bignumber.js');
-const { getJsonRpcUrl } = require('forta-agent');
-const RollingMathLib = require('rolling-math');
+const RollingMath = require('rolling-math');
+const { Finding, FindingSeverity, FindingType } = require('forta-agent');
+const { provideInitialize, initializeData } = require('./bot-setup');
 
-// get createAlert and dataFields
-const { createAlert, dataFields } = require('./common');
+// helper function to create alerts
+function createAlert(metadata, initData) {
+  const { developerAbbrev, protocolName, protocolAbbrev } = initData;
+  const {
+    field, reserve, observation, average,
+  } = metadata;
 
-// load required shared types
-const contractAddresses = require('../contract-addresses.json');
-
-const { LendingPool: lendingPoolAddr, ProtocolDataProvider: dataProviderAddr } = contractAddresses;
-const { abi: DataAbi } = require('../abi/AaveProtocolDataProvider.json');
-const { abi: LendingPoolAbi } = require('../abi/ILendingPool.json');
-
-// get config settings
-const {
-  totalValueAndLiquidity: rawConfig,
-} = require('../agent-config.json');
-
-// set up RPC provider
-const provider = new ethers.providers.JsonRpcProvider(getJsonRpcUrl());
-
-// set up handle to Aave's LendingPool contract
-const lendingPoolContract = new ethers.Contract(lendingPoolAddr, LendingPoolAbi, provider);
-const dataProviderContract = new ethers.Contract(dataProviderAddr, DataAbi, provider);
-
-// create rolling math object structure
-let rollingLiquidityData = {};
+  return Finding.fromObject({
+    name: `Anomalous ${protocolName} ${field} change`,
+    description: `Reserve ${reserve} had a large change in ${field}`,
+    alertId: `${developerAbbrev}-${protocolAbbrev}-TVL`,
+    severity: FindingSeverity.High,
+    type: FindingType.Suspicious,
+    metadata: {
+      field,
+      reserve,
+      observation: observation.toString(),
+      average: average.toString(),
+    },
+  });
+}
 
 // parses and returns data in a usable format
-async function parseData(dataPromise, reserve) {
+async function parseData(dataPromise, reserve, dataFields) {
   // settle our rpc call
   const data = await dataPromise;
 
@@ -51,63 +48,70 @@ async function parseData(dataPromise, reserve) {
   return parsedData;
 }
 
-function provideHandleBlock(RollingMath, config, lendingPool, dataProvider) {
-  rollingLiquidityData = {};
-
+function provideHandleBlock(data) {
   return async function handleBlock(blockEvent) {
+    const {
+      lendingPoolContract,
+      dataProviderContract,
+      dataFields,
+      rollingLiquidityData,
+      windowSize,
+      numStdDeviations,
+      minElements,
+    } = data;
     const findings = [];
 
     // override block number so we get data from the block in question
     const override = { blockTag: blockEvent.blockNumber };
 
     // get reserves and the current liquidity from this block
-    const reserves = await lendingPool.getReservesList({ ...override });
+    const reserves = await lendingPoolContract.getReservesList({ ...override });
 
     // create array containing a promise that returns the data for each reserve
-    const reserveData = [];
-    reserves.forEach((reserve) => {
-      // RPC call for per reserve data
-      const dataPromise = dataProvider.getReserveData(reserve, { ...override });
-      reserveData.push(
-        parseData(dataPromise, reserve).catch(() => undefined),
-      );
+    const reserveDataPromises = reserves.map(async (reserve) => {
+      try {
+        // RPC call per reserve data
+        const promise = dataProviderContract.getReserveData(reserve, { ...override });
+        return await parseData(promise, reserve, dataFields);
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
     });
 
-    // resolve our requests
-    const resolved = (await Promise.all(reserveData)).filter(
-      (result) => result !== undefined,
-    );
+    const resolved = (await Promise.all(reserveDataPromises)).flat();
 
     // process the data
-    resolved.forEach((data) => {
-      const { reserve } = data;
+    resolved.forEach((reserveData) => {
+      const { reserve } = reserveData;
 
       // initialize the rolling math libraries if they don't exist
       if (!rollingLiquidityData[reserve]) {
         rollingLiquidityData[reserve] = {};
         dataFields.forEach((field) => {
-          rollingLiquidityData[reserve][field] = new RollingMath(config.windowSize);
+          rollingLiquidityData[reserve][field] = new RollingMath(windowSize);
         });
       }
 
       // loop over data
       dataFields.forEach((field) => {
-        const observation = new BigNumber(data[field].toHexString());
+        const observation = new BigNumber(reserveData[field].toHexString());
         const pastData = rollingLiquidityData[reserve][field];
 
         // only process data for alerts if we have seen a significant number of blocks
-        if (pastData.getNumElements() > config.minElements) {
+        if (pastData.getNumElements() > minElements) {
           const average = pastData.getAverage();
           const standardDeviation = pastData.getStandardDeviation();
 
-          const limit = standardDeviation.times(config.numStds);
+          const limit = standardDeviation.times(numStdDeviations);
           const delta = observation.minus(average).absoluteValue();
 
           // alert on differences larger than our limit
           if (delta.isGreaterThan(limit)) {
-            findings.push(createAlert({
+            const metadata = {
               field, reserve, observation, average,
-            }));
+            };
+            findings.push(createAlert(metadata, data));
           }
         }
 
@@ -122,8 +126,8 @@ function provideHandleBlock(RollingMath, config, lendingPool, dataProvider) {
 
 // exports
 module.exports = {
+  provideInitialize,
+  initialize: provideInitialize(initializeData),
   provideHandleBlock,
-  handleBlock: provideHandleBlock(
-    RollingMathLib, rawConfig, lendingPoolContract, dataProviderContract,
-  ),
+  handleBlock: provideHandleBlock(initializeData),
 };

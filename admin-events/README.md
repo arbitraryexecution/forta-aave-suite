@@ -2,7 +2,7 @@
 
 ## Description
 
-This agent monitors transactions for Aave administrative events.
+This bot monitors transactions for Aave administrative events.
 
 ## Supported Chains
 
@@ -19,4 +19,4 @@ This agent monitors transactions for Aave administrative events.
 
 ## Test Data
 
-To run all the tests for this agent, use the following command: `npm run test`
+To run all the tests for this bot, use the following command: `npm run test`

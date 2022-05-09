@@ -1,0 +1,50 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contracts": {
+    "LendingPool": {
+      "newContractEOA": {
+        "thresholdBlockCount": 7,
+        "thresholdTransactionCount": 7,
+        "address": "0x7d2768de32b0b80b7a3454c06bdac94a69ddc7a9",
+        "filteredAddresses": [
+          "0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5",
+          "0x3Ed3B47Dd13EC9a98b44e6204A523E766B225811",
+          "0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656",
+          "0x030bA81f1c18d280636F32af80b9AAd02Cf0854e",
+          "0x5165d24277cD063F5ac44Efd447B27025e888f37",
+          "0xDf7FF54aAcAcbFf42dfe29DD6144A69b629f8C9e",
+          "0xB9D7CB55f463405CDfBe4E90a6D2Df01C2B92BF1",
+          "0xFFC97d72E13E01096502Cb8Eb52dEe56f74DAD7B",
+          "0x05Ec93c0365baAeAbF7AefFb0972ea7ECdD39CF1",
+          "0xA361718326c15715591c299427c62086F69923D9",
+          "0x028171bCA77440897B824Ca71D1c56caC55b68A3",
+          "0xaC6Df26a590F08dcC95D5a4705ae8abbc88509Ef",
+          "0x39C6b3e42d6A679d7D776778Fe880BC9487C2EDA",
+          "0xa06bC25B5805d5F8d82847D191Cb4Af5A3e873E0",
+          "0xa685a61171bb30d4072B338c80Cb7b2c865c873E",
+          "0xc713e5E149D5D0715DcD1c156a020976e7E56B88",
+          "0xCC12AbE4ff81c9378D670De1b57F8e0Dd228D77a",
+          "0x35f6B052C598d933D69A4EEC4D04c73A191fE6c2",
+          "0x6C5024Cd4F8A59110119C56f8933403A539555EB",
+          "0x101cc05f4A51C0319f570d5E146a8C625198e636",
+          "0xBcca60bB61934080951369a648Fb03DF4F96263C",
+          "0x8dAE6Cb04688C62d939ed9B68d32Bc62e49970b1",
+          "0xD37EE7e4f452C6638c96536e68090De8cBcdb583",
+          "0x272F97b7a56a387aE942350bBC7Df5700f8a4576",
+          "0xF256CC7847E919FAc9B808cC216cAc87CCF2f47a",
+          "0x514cd6756CCBe28772d4Cb81bC3156BA9d1744aa",
+          "0xc9BC48c72154ef3e5425641a3c747242112a46AF",
+          "0x1E6bb68Acec8fefBD87D192bE09bb274170a0548",
+          "0x2e8F4bdbE3d47d7d7DE490437AeA9915D930F1A3",
+          "0x6F634c6135D2EBD550000ac92F494F9CB8183dAe",
+          "0xd4937682df3C8aEF4FE912A96A74121C0829E664",
+          "0x683923dB55Fead99A79Fa01A27EeC3cB19679cC3"
+        ],
+        "findingType": "Suspicious",
+        "findingSeverity": "Medium"
+      }
+    }
+  }
+}

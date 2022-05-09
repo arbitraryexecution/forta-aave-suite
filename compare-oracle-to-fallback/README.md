@@ -2,7 +2,7 @@
 
 ## Description
 
-This agent monitors the price difference between the price oracle and fallback price oracle.
+This bot monitors the price difference between the price oracle and fallback price oracle.
 
 ## Supported Chains
 
@@ -25,4 +25,4 @@ This agent monitors the price difference between the price oracle and fallback p
 
 ## Test Data
 
-To run all the tests for this agent, use the following command: `npm run test`
+To run all the tests for this bot, use the following command: `npm run test`

@@ -1,23 +1,44 @@
-const ethers = require('ethers');
+const mockJSON = {
+  developerAbbreviation: 'TEST',
+  protocolName: 'mockProtocol',
+  protocolAbbrev: 'MOCK',
+  contracts: {
+    mockContract1: {
+      address: '0x2fbb0c60a41cb7ea5323071624dcead3d213d0fa',
+      watch: {
+        type: 'Info',
+        severity: 'Info',
+      },
+    },
+    mockContract2: {
+      address: '0xFe1A6056EE03235f30f7a48407A5673BBf25eD48',
+      watch: {
+        type: 'Info',
+        severity: 'Info',
+      },
+    },
+  },
+};
+
+// mock the config file loaded by the bot for testing
+jest.mock('../bot-config.json', () => mockJSON);
 
 const {
   TransactionEvent,
   FindingType,
   FindingSeverity,
   Finding,
+  ethers,
 } = require('forta-agent');
 
 // local definitions
-const { handleTransaction, addressList } = require('./agent');
-
-// load configuration data from agent config file
-const { aaveEverestId: AAVE_EVEREST_ID } = require('../agent-config.json');
+const { handleTransaction } = require('./agent');
 
 /**
- * TransactionEvent(type, network, transaction, receipt, traces, addresses, block)
+ * TransactionEvent(type, network, transaction, traces, addresses, block, logs, contractAddress)
  */
 function createTxEvent(transaction) {
-  return new TransactionEvent(null, null, transaction, null, [], null, null);
+  return new TransactionEvent(null, null, transaction, [], [], null, [], []);
 }
 
 // tests
@@ -27,10 +48,9 @@ describe('watch admin addresses', () => {
       // build txEvent
       const txEvent = createTxEvent({
         from: ethers.constants.AddressZero,
-        hash: ethers.constants.HashZero,
       });
 
-      // run agent with txEvent
+      // run bot with txEvent
       const findings = await handleTransaction(txEvent);
 
       // assertions
@@ -38,58 +58,61 @@ describe('watch admin addresses', () => {
     });
 
     it('returns a finding if the transaction originator is on the watch list', async () => {
+      const [contractName] = Object.keys(mockJSON.contracts);
+      const {
+        address: contractAddress,
+        watch: {
+          type,
+          severity,
+        },
+      } = mockJSON.contracts[contractName];
+
       // build txEvent
       const txEvent = createTxEvent({
-        from: '0x46bcf35d96eda5e5f6ec48c7956bb4ed9caba1f2',
-        hash: ethers.constants.HashZero,
+        from: contractAddress.toLowerCase(),
       });
 
-      // run agent with txEvent
+      // run bot with txEvent
       const findings = await handleTransaction(txEvent);
-      const { from, hash } = txEvent.transaction;
 
       // assertions
       expect(findings).toStrictEqual([
         Finding.fromObject({
-          name: 'Aave Address Watch',
-          description: `Address ${from} (${addressList[from]}) was involved in a transaction`,
-          alertId: 'AE-AAVE-ADDRESS-WATCH',
-          type: FindingType.Suspicious,
-          severity: FindingSeverity.Low,
-          metadata: {
-            from,
-            hash,
-          },
-          everestId: AAVE_EVEREST_ID,
+          name: `${mockJSON.protocolName} Address Watch`,
+          description: `Address ${contractAddress} (${contractName}) initiated a transaction`,
+          alertId: `${mockJSON.developerAbbreviation}-${mockJSON.protocolAbbrev}-ADDRESS-WATCH`,
+          type: FindingType[type],
+          severity: FindingSeverity[severity],
         }),
       ]);
     });
 
     it('returns a finding if the transaction originator is on the watch list and contains a mix of uppercase and lowercase letters in its address', async () => {
+      const contractName = Object.keys(mockJSON.contracts)[1];
+      const {
+        address: contractAddress,
+        watch: {
+          type,
+          severity,
+        },
+      } = mockJSON.contracts[contractName];
+
       // build txEvent
-      const fromAddress = '0x504b0B9B2fa7fEb434820058061f73E7e86ed38A';
       const txEvent = createTxEvent({
-        from: fromAddress.toLowerCase(),
-        hash: ethers.constants.HashZero,
+        from: contractAddress.toLowerCase(),
       });
 
-      // run agent with txEvent
+      // run bot with txEvent
       const findings = await handleTransaction(txEvent);
-      const { from, hash } = txEvent.transaction;
 
       // assertions
       expect(findings).toStrictEqual([
         Finding.fromObject({
-          name: 'Aave Address Watch',
-          description: `Address ${fromAddress} (${addressList[fromAddress]}) was involved in a transaction`,
-          alertId: 'AE-AAVE-ADDRESS-WATCH',
-          type: FindingType.Suspicious,
-          severity: FindingSeverity.Low,
-          metadata: {
-            from,
-            hash,
-          },
-          everestId: AAVE_EVEREST_ID,
+          name: `${mockJSON.protocolName} Address Watch`,
+          description: `Address ${contractAddress} (${contractName}) initiated a transaction`,
+          alertId: `${mockJSON.developerAbbreviation}-${mockJSON.protocolAbbrev}-ADDRESS-WATCH`,
+          type: FindingType[type],
+          severity: FindingSeverity[severity],
         }),
       ]);
     });
