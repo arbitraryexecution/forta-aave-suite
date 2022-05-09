@@ -1,0 +1,12 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contracts": {
+    "LendingPoolAddressesProvider": {
+      "address": "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
+      "abiFile": "LendingPoolAddressesProvider.json"
+    }
+  },
+  "minimumFeeAmount": 100000
+}
