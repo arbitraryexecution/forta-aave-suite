@@ -43,7 +43,7 @@ function createTransactionEvent(txObject) {
 
 // check the configuration file to verify the values
 describe('check bot configuration file', () => {
-  it('procotolName key required', () => {
+  it('protocolName key required', () => {
     const { protocolName } = config;
     expect(typeof (protocolName)).toBe('string');
     expect(protocolName).not.toBe('');
@@ -75,7 +75,7 @@ describe('check bot configuration file', () => {
       // only check that an address exists for the LendingPoolAddressesProvider entry
       if (key === 'LendingPoolAddressesProvider') {
         expect(address).not.toBe(undefined);
-        
+
         // check that the address is a valid address
         expect(ethers.utils.isHexString(address, 20)).toBe(true);
       }
@@ -120,7 +120,6 @@ describe('monitor emitted events', () => {
     let findingType;
     let findingSeverity;
     const mockContractAddress = ethers.utils.getAddress('0x230E76a625927709618AB27761d574A5CFf75d61');
-    const contractName = 'LendingPool';
 
     beforeEach(async () => {
       initializeData = {};
@@ -128,7 +127,7 @@ describe('monitor emitted events', () => {
       mockContract.getLendingPool = jest.fn().mockResolvedValue(mockContractAddress);
 
       // initialize the handler
-      await (provideInitialize(initializeData))();
+      await provideInitialize(initializeData)();
       handleTransaction = provideHandleTransaction(initializeData);
 
       ({ protocolName, protocolAbbreviation, developerAbbreviation } = config);
@@ -146,7 +145,7 @@ describe('monitor emitted events', () => {
         eventInConfig,
         eventNotInConfig,
         findingType,
-        findingSeverity
+        findingSeverity,
       } = getEventFromConfig(abi, events));
 
       if (eventInConfig === undefined) {
@@ -178,13 +177,7 @@ describe('monitor emitted events', () => {
 
       // initialize mock transaction event with default values
       mockTxEvent = createTransactionEvent({
-        logs: [
-          {
-            address: '',
-            topics: [],
-            data: '0x',
-          },
-        ],
+        logs: [],
       });
     });
 
@@ -196,13 +189,15 @@ describe('monitor emitted events', () => {
     it('returns empty findings if contract address does not match', async () => {
       // encode event data
       // valid event name with valid name, signature, topic, and args
-      const { mockArgs, mockTopics, data } = createMockEventLogs(eventInConfig, iface);
+      const { mockTopics, data } = createMockEventLogs(eventInConfig, iface);
 
-      // update mock transaction event
-      const [defaultLog] = mockTxEvent.logs;
-      defaultLog.address = ethers.constants.AddressZero;
-      defaultLog.topics = mockTopics;
-      defaultLog.data = data;
+      const mockEvent = {
+        address: ethers.constants.AddressZero,
+        topics: mockTopics,
+        data,
+      };
+
+      mockTxEvent.logs.push(mockEvent);
 
       const findings = await handleTransaction(mockTxEvent);
 
@@ -211,13 +206,15 @@ describe('monitor emitted events', () => {
 
     it('returns empty findings if contract address matches but no monitored event was emitted', async () => {
       // encode event data - valid event with valid arguments
-      const { mockArgs, mockTopics, data } = createMockEventLogs(eventNotInConfig, iface);
+      const { mockTopics, data } = createMockEventLogs(eventNotInConfig, iface);
 
-      // update mock transaction event
-      const [defaultLog] = mockTxEvent.logs;
-      defaultLog.address = mockContractAddress;
-      defaultLog.topics = mockTopics;
-      defaultLog.data = data;
+      const mockEvent = {
+        address: mockContractAddress,
+        topics: mockTopics,
+        data,
+      };
+
+      mockTxEvent.logs.push(mockEvent);
 
       const findings = await handleTransaction(mockTxEvent);
 
@@ -229,11 +226,13 @@ describe('monitor emitted events', () => {
       // valid event name with valid name, signature, topic, and args
       const { mockArgs, mockTopics, data } = createMockEventLogs(eventInConfig, iface);
 
-      // update mock transaction event
-      const [defaultLog] = mockTxEvent.logs;
-      defaultLog.address = mockContractAddress;
-      defaultLog.topics = mockTopics;
-      defaultLog.data = data;
+      const mockEvent = {
+        address: mockContractAddress,
+        topics: mockTopics,
+        data,
+      };
+
+      mockTxEvent.logs.push(mockEvent);
 
       const findings = await handleTransaction(mockTxEvent);
       const expectedFinding = Finding.fromObject({
