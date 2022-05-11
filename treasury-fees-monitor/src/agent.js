@@ -29,22 +29,21 @@ function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severi
 }
 
 function calculateStatistics(currMean, currVariance, currNumDataPoints, newValue) {
-  let newMean = new BigNumber(0);
-  let newStdDev = new BigNumber(0);
-  let newVariance = new BigNumber(0);
-  let newNumDataPoints = currNumDataPoints.plus(1);
+  let newMean = 0;
+  let newStdDev = 0;
+  let newVariance = 0;
+  let newNumDataPoints = currNumDataPoints + 1;
 
   if (currNumDataPoints === 0) {
     newMean = newValue;
-    newNumDataPoints = new BigNumber(1);
+    newNumDataPoints = 1;
   } else {
-    newMean = (currMean.times(currNumDataPoints.div(newNumDataPoints)))
-      .plus(newValue.div(newNumDataPoints));
+    newMean = (currMean * (currNumDataPoints / newNumDataPoints)) + (newValue / newNumDataPoints);
     newVariance = (
-      (currVariance.times(currNumDataPoints))
-        .plus((newValue.minus(newMean)).times(newValue.minus(currMean)))
-    ).div(newNumDataPoints);
-    newStdDev = newVariance.sqrt();
+      (((currVariance * currNumDataPoints) + ((newValue - newMean) * (newValue - currMean)))
+        / newNumDataPoints)
+    );
+    newStdDev = Math.sqrt(newVariance);
   }
 
   return {
@@ -55,22 +54,26 @@ function calculateStatistics(currMean, currVariance, currNumDataPoints, newValue
   };
 }
 
-async function parseAndCompute(csvFileName, tokenInfo) {
+async function parseCsvAndCompute(csvFileName, tokenInfo, tokenPriceInfo) {
   return new Promise((resolve, reject) => {
-    let mean = new BigNumber(0);
-    let stdDev = new BigNumber(0);
-    let variance = new BigNumber(0);
-    let numDataPoints = new BigNumber(0);
+    let mean = 0;
+    let stdDev = 0;
+    let variance = 0;
+    let numDataPoints = 0;
 
     fs.createReadStream(`${__dirname}/${csvFileName}`)
       .pipe(csv())
       .on('data', (data) => {
         // scale the premium for each row of data in the CSV file by the given asset's decimals
         const denominator = (new BigNumber(10)).pow(tokenInfo[data.asset]);
-        const scaledPremium = (new BigNumber(data.premium)).div(denominator);
+        const scaledPremium = parseFloat(
+          (new BigNumber(data.premium)).div(denominator),
+        );
+        const premiumInETH = scaledPremium * tokenPriceInfo[data.asset];
+
         ({
           mean, stdDev, variance, numDataPoints,
-        } = calculateStatistics(mean, variance, numDataPoints, scaledPremium));
+        } = calculateStatistics(mean, variance, numDataPoints, premiumInETH));
       })
       .on('end', () => resolve({
         mean, stdDev, variance, numDataPoints,
@@ -92,6 +95,7 @@ function provideInitialize(data) {
       LendingPoolAddressesProvider: lendingPoolAddressesProvider,
       LendingPool: lendingPool,
       ProtocolDataProvider: protocolDataProvider,
+      PriceOracle: priceOracle,
     } = config.contracts;
 
     // from the LendingPoolAddressesProvider, get the address of the LendingPool proxy contract
@@ -134,15 +138,38 @@ function provideInitialize(data) {
       data.tokenInfo[tokenAddress] = tokenDecimals.toString();
     }));
 
+    // get the address of the price oracle
+    const priceOracleAddress = await data.lendingPoolAddressesProviderContract.getPriceOracle();
+    const priceOracleAbi = getAbi(priceOracle.abiFile);
+    data.priceOracleContract = new ethers.Contract(
+      priceOracleAddress,
+      priceOracleAbi,
+      data.provider,
+    );
+
+    // for each asset retrieve a spot price that will be used when computing statistics
+    const tokenAddressesList = tokenAddresses.map((token) => token[1]);
+    // the spot prices given by the Aave price oracle are in 'ETH wei' units
+    const denominatorWEI = (new BigNumber(10)).pow(18);
+    const spotPricesScaledETH = {};
+    // request all of the prices for the assets in tokenAddressesList from the price oracle
+    const spotPricesETH = await data.priceOracleContract.getAssetsPrices(tokenAddressesList);
+    // iterate over each price, correlate it with its associated asset token, and scale the price
+    spotPricesETH.forEach((price, index) => {
+      spotPricesScaledETH[tokenAddressesList[index]] = parseFloat(
+        (new BigNumber(price.toString())).div(denominatorWEI),
+      );
+    });
+
     // parse the csv file specified in the config file and calculate mean, standard deviation,
     // and variance
     const {
       mean, stdDev, variance, numDataPoints,
-    } = await parseAndCompute(config.dataSet, data.tokenInfo);
-    console.log(mean.toString());
-    console.log(stdDev.toString());
-    console.log(variance.toString());
-    console.log(numDataPoints.toString());
+    } = await parseCsvAndCompute(config.dataSet, data.tokenInfo, spotPricesScaledETH);
+    console.log(mean);
+    console.log(stdDev);
+    console.log(variance);
+    console.log(numDataPoints);
     /* eslint-enable no-param-reassign */
   };
 }
