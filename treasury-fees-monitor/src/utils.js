@@ -1,3 +1,7 @@
+const fs = require('fs');
+const csv = require('csv-parser');
+const BigNumber = require('bignumber.js');
+
 // helper function for importing a file located in the abi/ folder given its name
 function getAbi(abiName) {
   // eslint-disable-next-line global-require,import/no-dynamic-require
@@ -5,37 +9,62 @@ function getAbi(abiName) {
   return abi;
 }
 
-// helper function that identifies key strings in the args array obtained from log parsing
-// these key-value pairs will be added to the metadata as event args
-// all values are converted to strings so that BigNumbers are readable
-function extractEventArgs(args) {
-  const eventArgs = {};
-  Object.keys(args).forEach((key) => {
-    if (Number.isNaN(Number(key))) {
-      eventArgs[key] = args[key].toString();
-    }
-  });
-  return eventArgs;
+function calculateStatistics(currMean, currVariance, currNumDataPoints, newValue) {
+  let newMean = 0;
+  let newStdDev = 0;
+  let newVariance = 0;
+  let newNumDataPoints = currNumDataPoints + 1;
+
+  if (currNumDataPoints === 0) {
+    newMean = newValue;
+    newNumDataPoints = 1;
+  } else {
+    newMean = (currMean * (currNumDataPoints / newNumDataPoints)) + (newValue / newNumDataPoints);
+    newVariance = (
+      (((currVariance * currNumDataPoints) + ((newValue - newMean) * (newValue - currMean)))
+        / newNumDataPoints)
+    );
+    newStdDev = Math.sqrt(newVariance);
+  }
+
+  return {
+    mean: newMean,
+    stdDev: newStdDev,
+    variance: newVariance,
+    numDataPoints: newNumDataPoints,
+  };
 }
 
-// helper function that returns an array of objects containing the name, signature, and configured
-// type and severity for each event passed in the events array
-function getEventInfo(iface, events, sigType) {
-  const result = {};
-  Object.entries(events).forEach(([eventName, entry]) => {
-    const signature = iface.getEvent(eventName).format(sigType);
-    result[eventName] = {
-      name: eventName,
-      signature,
-      type: entry.type,
-      severity: entry.severity,
-    };
+async function parseCsvAndCompute(csvFileName, tokenInfo, tokenPriceInfo) {
+  return new Promise((resolve, reject) => {
+    let mean = 0;
+    let stdDev = 0;
+    let variance = 0;
+    let numDataPoints = 0;
+
+    fs.createReadStream(`${__dirname}/${csvFileName}`)
+      .pipe(csv())
+      .on('data', (data) => {
+        // scale the premium for each row of data in the CSV file by the given asset's decimals
+        const denominator = (new BigNumber(10)).pow(tokenInfo[data.asset]);
+        const scaledPremium = parseFloat(
+          (new BigNumber(data.premium)).div(denominator),
+        );
+        const premiumInEth = scaledPremium * tokenPriceInfo[data.asset];
+
+        ({
+          mean, stdDev, variance, numDataPoints,
+        } = calculateStatistics(mean, variance, numDataPoints, premiumInEth));
+      })
+      .on('end', () => resolve({
+        mean, stdDev, variance, numDataPoints,
+      }))
+      .on('error', () => reject());
   });
-  return result;
 }
 
 module.exports = {
   getAbi,
-  extractEventArgs,
-  getEventInfo,
+  calculateStatistics,
+  parseCsvAndCompute,
 };
