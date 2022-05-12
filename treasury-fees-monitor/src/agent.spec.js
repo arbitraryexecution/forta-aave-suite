@@ -19,8 +19,49 @@ const {
   Finding, FindingType, FindingSeverity, ethers, TransactionEvent,
 } = require('forta-agent');
 
+const { provideHandleTransaction, provideInitialize } = require('./agent');
+const {
+  getObjectsFromAbi,
+  createMockEventLogs,
+} = require('./test-utils');
 const { getAbi, calculateStatistics, parseCsvAndCompute } = require('./utils');
 const config = require('../bot-config.json');
+
+// setup mock fs streaming object
+const mockAssetToken = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+const mockStream = {
+  pipe: jest.fn().mockReturnThis(),
+  // eslint-disable-next-line func-names
+  on: jest.fn().mockImplementation(function (event, handler) {
+    if (event === 'data') {
+      handler({
+        asset: mockAssetToken,
+        premium: '1000000000000000000',
+      });
+    } else {
+      handler();
+    }
+
+    return this;
+  }),
+};
+
+// utility function specific for this test module
+// we are intentionally not using the Forta SDK function due to issues with
+// jest mocking the module and interfering with default function values
+function createTransactionEvent(txObject) {
+  const txEvent = new TransactionEvent(
+    null,
+    null,
+    null,
+    [],
+    {},
+    null,
+    txObject.logs,
+    null,
+  );
+  return txEvent;
+}
 
 // check the configuration file to verify the values
 describe('check bot configuration file', () => {
@@ -66,6 +107,16 @@ describe('check bot configuration file', () => {
       getAbi(abiFile);
     });
   });
+
+  it('type and severity key required', () => {
+    const { type, severity } = config;
+
+    // check type, this will fail if 'type' is not valid
+    expect(Object.prototype.hasOwnProperty.call(FindingType, type)).toBe(true);
+
+    // check severity, this will fail if 'severity' is not valid
+    expect(Object.prototype.hasOwnProperty.call(FindingSeverity, severity)).toBe(true);
+  });
 });
 
 describe('test helper functions', () => {
@@ -91,26 +142,10 @@ describe('test helper functions', () => {
 
   it('parseCsvAndCompute returns the correct output given a specific input', async () => {
     const mockTokenInfo = {
-      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 18,
+      [mockAssetToken]: 18,
     };
     const mockTokenPrice = {
-      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 1,
-    };
-    const mockStream = {
-      pipe: jest.fn().mockReturnThis(),
-      // eslint-disable-next-line func-names
-      on: jest.fn().mockImplementation(function (event, handler) {
-        if (event === 'data') {
-          handler({
-            asset: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-            premium: '1000000000000000000',
-          });
-        } else {
-          handler();
-        }
-
-        return this;
-      }),
+      [mockAssetToken]: 1,
     };
 
     mockReadStream.mockReturnValueOnce(mockStream);
@@ -122,5 +157,147 @@ describe('test helper functions', () => {
       numDataPoints: 1,
     };
     expect(result).toStrictEqual(expectedResult);
+  });
+});
+
+describe('monitor treasury fee premiums from flash loan events', () => {
+  describe('handleTransaction', () => {
+    let initializeData;
+    let handleTransaction;
+    let mockTxEvent;
+
+    const { abiFile } = config.contracts.LendingPool;
+    const { FlashLoan: flashLoanObject } = getObjectsFromAbi(getAbi(abiFile), 'event');
+    const iface = new ethers.utils.Interface([flashLoanObject]);
+
+    beforeEach(async () => {
+      initializeData = {};
+
+      // setup the mocking needed in the initialize function
+      mockReadStream.mockReturnValueOnce(mockStream);
+      mockContract.getLendingPool = jest.fn().mockResolvedValueOnce('0xMOCKLENDINGPOOLADDRESS');
+      mockContract.getAllReservesTokens = jest.fn().mockResolvedValueOnce([['TEST', mockAssetToken]]);
+      mockContract.decimals = jest.fn().mockResolvedValueOnce(ethers.BigNumber.from(18));
+      mockContract.getPriceOracle = jest.fn().mockResolvedValueOnce('0xMOCKPRICEORACLE');
+      mockContract.getAssetsPrices = jest.fn().mockResolvedValueOnce(
+        [ethers.BigNumber.from('1000000000000000000')],
+      );
+
+      // initialize the handler
+      await provideInitialize(initializeData)();
+      handleTransaction = provideHandleTransaction(initializeData);
+
+      // initialize mock transaction event with default values
+      mockTxEvent = createTransactionEvent({
+        logs: [],
+      });
+    });
+
+    it('returns empty findings when a FlashLoan event was not emitted', async () => {
+      const findings = await handleTransaction(mockTxEvent);
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns empty findings when a FlashLoan event was emitted but the contract address does not match', async () => {
+      // encode event data
+      const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface);
+
+      const mockEvent = {
+        address: ethers.constants.AddressZero,
+        topics: mockTopics,
+        data,
+      };
+      mockTxEvent.logs.push(mockEvent);
+
+      const findings = await handleTransaction(mockTxEvent);
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns empty findings when the contract address matches but a FlashLoan event was not emitted', async () => {
+      const mockEvent = {
+        address: '0xMOCKLENDINGPOOLADDRESS',
+        topics: ethers.constants.HashZero,
+        data: '0x',
+      };
+      mockTxEvent.logs.push(mockEvent);
+
+      const findings = await handleTransaction(mockTxEvent);
+      expect(findings).toStrictEqual([]);
+    });
+
+    it('returns empty findings when a FlashLoan event was emitted with the correct contract address but the premium is within the threshold', async () => {
+      // set the values for the statistics stored in initializeData
+      initializeData.mean = 10;
+      initializeData.stdDev = 0;
+      initializeData.variance = 0;
+      initializeData.numDataPoints = 1;
+
+      // encode event data
+      const overrides = {
+        asset: mockAssetToken,
+        premium: ethers.BigNumber.from('10000000000000000000'),
+      };
+      const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface, overrides);
+
+      const mockEvent = {
+        address: '0xMOCKLENDINGPOOLADDRESS',
+        topics: mockTopics,
+        data,
+      };
+      mockTxEvent.logs.push(mockEvent);
+
+      // mock out the price oracle call
+      mockContract.getAssetPrice = jest.fn()
+        .mockResolvedValueOnce(ethers.BigNumber.from('1000000000000000000'));
+
+      const findings = await handleTransaction(mockTxEvent);
+      expect(findings).toStrictEqual([]);
+      expect(initializeData.mean).toBe(10);
+      expect(initializeData.numDataPoints).toBe(2);
+      expect(initializeData.stdDev).toBe(0);
+      expect(initializeData.variance).toBe(0);
+    });
+
+    it('returns a finding when a FlashLoan event was emitted with the correct contract address and the premium greater than the threshold', async () => {
+      // set the values for the statistics stored in initializeData
+      initializeData.mean = 10;
+      initializeData.stdDev = 1;
+      initializeData.variance = 1;
+      initializeData.numDataPoints = 2;
+
+      // encode event data
+      const overrides = {
+        asset: mockAssetToken,
+        premium: ethers.BigNumber.from('100000000000000000000'),
+      };
+      const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface, overrides);
+
+      const mockEvent = {
+        address: '0xMOCKLENDINGPOOLADDRESS',
+        topics: mockTopics,
+        data,
+      };
+      mockTxEvent.logs.push(mockEvent);
+
+      // mock out the price oracle call
+      mockContract.getAssetPrice = jest.fn()
+        .mockResolvedValueOnce(ethers.BigNumber.from('1000000000000000000'));
+
+      const findings = await handleTransaction(mockTxEvent);
+      const expectedFinding = Finding.fromObject({
+        name: 'Aave Treasury Fee Monitor',
+        description: 'An anomalous flash loan premium of 100 ETH was paid to the treasury',
+        alertId: 'AE-AAVE-TREASURY-FEE',
+        type: FindingType[config.type],
+        severity: FindingSeverity[config.severity],
+        protocol: 'Aave',
+        metadata: {
+          tokenAsset: mockAssetToken,
+          tokenPriceEth: '1',
+          premiumEth: '100',
+        },
+      });
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
   });
 });
