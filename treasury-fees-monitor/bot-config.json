@@ -18,5 +18,7 @@
       "abiFile": "LendingPool.json"
     }
   },
-  "dataSet": "flashloan-dataset.csv"
+  "dataSet": "flashloan-dataset.csv",
+  "type": "Suspicious",
+  "severity": "Info"
 }
