@@ -2,7 +2,10 @@
 
 ## Description
 
-This bot monitors for FlashLoan events and alerts when the amount of fees collected is greater than the configured threshold.
+This bot monitors for FlashLoan events and alerts when the premium (aka the fees) collected from the
+FlashLoan exceeds either:
+  1. the configured low threshold value
+  2. a computed statistical high threshold of `(mean + (3 * standard deviation))`
 
 ## Supported Chains
 
@@ -12,15 +15,16 @@ This bot monitors for FlashLoan events and alerts when the amount of fees collec
 
 <!-- -->
 - AE-AAVE-TREASURY-FEES
-  - Emitted when a FlashLoan event has a 'premium' value greater than the configured threshold.
-  - Type is set to Suspicious
-  - Severity is set to High
+  - Emitted when a FlashLoan event has a `premium` value greater than either the configured low threshold
+    or the computed statistical high threshold
+  - Type is configurable
+  - Severity is configurable
 
 ## Test Data
 
 To run all the tests for this bot, use the following command: `npm run test`
 
-Additionally, the following transaction hash will trigger 3 separate alerts:
+Additionally, the following transaction hash will trigger 3 high threshold alerts:
 
 ```
 0xcd314668aaa9bbfebaf1a0bd2b6553d01dd58899c508d4729fa7311dc5d33ad7
