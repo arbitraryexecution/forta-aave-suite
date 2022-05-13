@@ -8,27 +8,56 @@ require('dotenv').config();
 const BLOCK_CHUNK = 128;
 const SECONDS_IN_DAY = 24 * 60 * 60;
 
-// eslint-disable-next-line consistent-return
-async function getBlockByTimestamp(provider, timestamp, startBlock) {
-  const withinSeconds = 60; // within approx. 1 minute
-  let highBlock = startBlock;
-  let lowBlock = 0;
+async function getBlockByTimestamp(provider, userTimestamp) {
+  // seed the algorithm
+  // starting value for low block
+  let lowBlockNumber = 1;
+  let lowBlock = await provider.getBlock(lowBlockNumber);
+  let lowBlockTimestamp = lowBlock.timestamp;
 
-  while (lowBlock < highBlock) {
-    const midBlockNum = lowBlock + Math.floor((highBlock - lowBlock) / 2);
+  // starting value for high block
+  let highBlockNumber = await provider.getBlockNumber();
+  let highBlock = await provider.getBlock(highBlockNumber);
+  let highBlockTimestamp = highBlock.timestamp;
+
+  // iterate until we find the two blocks whose timestamps bound the requested timestamp
+  let blockPerTime = 0;
+  let newBlock;
+  let newBlockNumber;
+  let newBlockTimestamp;
+  while (highBlockNumber - lowBlockNumber > 1 && lowBlockTimestamp !== newBlockTimestamp) {
+    // calculate average number of blocks per second
+    blockPerTime = (highBlockNumber - lowBlockNumber) / (highBlockTimestamp - lowBlockTimestamp);
+
+    // estimate the correct block number where the user's timestamp should exist
+    newBlockNumber = Math.floor(
+      lowBlockNumber + (blockPerTime * (userTimestamp - lowBlockTimestamp)),
+    );
+
+    // retrieve the block and timestamp
     // eslint-disable-next-line no-await-in-loop
-    const midBlock = await provider.getBlock(midBlockNum);
+    newBlock = await provider.getBlock(newBlockNumber);
+    newBlockTimestamp = newBlock.timestamp;
 
-    if (Math.abs(midBlock.timestamp - timestamp) <= withinSeconds) {
-      return midBlock;
-    }
-
-    if (midBlock.timestamp > timestamp) {
-      highBlock = midBlock.number;
-    } else if (midBlock.timestamp < timestamp) {
-      lowBlock = midBlock.number;
+    if (newBlockTimestamp > userTimestamp) {
+      // if the retrieved timestamp is higher than we expected, shift the high block down
+      highBlock = newBlock;
+      highBlockTimestamp = newBlockTimestamp;
+      highBlockNumber = newBlockNumber;
+    } else if (newBlockTimestamp < userTimestamp) {
+      // if the retrieved timestamp is lower than we expected, shift the high block down
+      lowBlock = newBlock;
+      lowBlockTimestamp = newBlockTimestamp;
+      lowBlockNumber = newBlockNumber;
+    } else {
+      // we found the timestamp exactly (this is unlikely, but we need to check)
+      return newBlock;
     }
   }
+
+  // the low block number should now have the highest timestamp that does not exceed the user
+  // requested timestamp
+  return lowBlock;
 }
 
 async function collectData(provider, filterInfo, timePeriod) {
@@ -36,7 +65,7 @@ async function collectData(provider, filterInfo, timePeriod) {
   const endBlock = await provider.getBlock(endBlockNum);
 
   const startTimestamp = (endBlock.timestamp - (timePeriod * SECONDS_IN_DAY));
-  const startBlock = await getBlockByTimestamp(provider, startTimestamp, endBlockNum);
+  const startBlock = await getBlockByTimestamp(provider, startTimestamp);
   const startBlockNum = startBlock.number;
 
   // chunk each getLogs call into a smaller block range so there is less of a chance that a
