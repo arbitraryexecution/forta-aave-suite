@@ -109,13 +109,16 @@ describe('check bot configuration file', () => {
   });
 
   it('type and severity key required', () => {
-    const { type, severity } = config;
+    const { thresholds } = config;
+    Object.keys(thresholds).forEach((key) => {
+      const { type, severity } = thresholds[key];
 
-    // check type, this will fail if 'type' is not valid
-    expect(Object.prototype.hasOwnProperty.call(FindingType, type)).toBe(true);
+      // check type, this will fail if 'type' is not valid
+      expect(Object.prototype.hasOwnProperty.call(FindingType, type)).toBe(true);
 
-    // check severity, this will fail if 'severity' is not valid
-    expect(Object.prototype.hasOwnProperty.call(FindingSeverity, severity)).toBe(true);
+      // check severity, this will fail if 'severity' is not valid
+      expect(Object.prototype.hasOwnProperty.call(FindingSeverity, severity)).toBe(true);
+    });
   });
 });
 
@@ -216,7 +219,7 @@ describe('monitor treasury fee premiums from flash loan events', () => {
     it('returns empty findings when the contract address matches but a FlashLoan event was not emitted', async () => {
       const mockEvent = {
         address: '0xMOCKLENDINGPOOLADDRESS',
-        topics: ethers.constants.HashZero,
+        topics: [ethers.constants.HashZero],
         data: '0x',
       };
       mockTxEvent.logs.push(mockEvent);
@@ -225,17 +228,18 @@ describe('monitor treasury fee premiums from flash loan events', () => {
       expect(findings).toStrictEqual([]);
     });
 
-    it('returns empty findings when a FlashLoan event was emitted with the correct contract address but the premium is within the threshold', async () => {
+    it('returns empty findings when a FlashLoan event was emitted with the correct contract address but the premium is within the thresholds', async () => {
       // set the values for the statistics stored in initializeData
-      initializeData.mean = 10;
+      initializeData.mean = 0;
       initializeData.stdDev = 0;
       initializeData.variance = 0;
       initializeData.numDataPoints = 1;
 
       // encode event data
+      // since do not want to generate a finding, set the premium to 0
       const overrides = {
         asset: mockAssetToken,
-        premium: ethers.BigNumber.from('10000000000000000000'),
+        premium: 0,
       };
       const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface, overrides);
 
@@ -252,23 +256,29 @@ describe('monitor treasury fee premiums from flash loan events', () => {
 
       const findings = await handleTransaction(mockTxEvent);
       expect(findings).toStrictEqual([]);
-      expect(initializeData.mean).toBe(10);
+      expect(initializeData.mean).toBe(0);
       expect(initializeData.numDataPoints).toBe(2);
       expect(initializeData.stdDev).toBe(0);
       expect(initializeData.variance).toBe(0);
     });
 
-    it('returns a finding when a FlashLoan event was emitted with the correct contract address and the premium greater than the threshold', async () => {
+    it('returns a finding when a FlashLoan event was emitted with the correct contract address and the premium is greater than the low threshold', async () => {
       // set the values for the statistics stored in initializeData
-      initializeData.mean = 10;
-      initializeData.stdDev = 1;
-      initializeData.variance = 1;
+      initializeData.mean = 0.5;
+      initializeData.stdDev = 0.5;
+      initializeData.variance = 0.25;
       initializeData.numDataPoints = 2;
+
+      // since we want to generate a finding using the type and severity of the low threshold, parse
+      // the low threshold minEth value from the config and add one
+      const valueToEncode = parseInt(config.thresholds.lowThreshold.minEth, 10) + 1;
+      const numerator = ethers.BigNumber.from(10).pow(18);
+      const scaledValueToEncode = ethers.BigNumber.from(valueToEncode).mul(numerator);
 
       // encode event data
       const overrides = {
         asset: mockAssetToken,
-        premium: ethers.BigNumber.from('100000000000000000000'),
+        premium: scaledValueToEncode,
       };
       const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface, overrides);
 
@@ -284,17 +294,61 @@ describe('monitor treasury fee premiums from flash loan events', () => {
         .mockResolvedValueOnce(ethers.BigNumber.from('1000000000000000000'));
 
       const findings = await handleTransaction(mockTxEvent);
+      const { type, severity } = config.thresholds.lowThreshold;
       const expectedFinding = Finding.fromObject({
         name: 'Aave Treasury Fee Monitor',
-        description: 'An anomalous flash loan premium of 100 ETH was paid to the treasury',
+        description: 'An anomalous flash loan premium of 2 ETH was paid to the treasury',
         alertId: 'AE-AAVE-TREASURY-FEE',
-        type: FindingType[config.type],
-        severity: FindingSeverity[config.severity],
+        type: FindingType[type],
+        severity: FindingSeverity[severity],
         protocol: 'Aave',
         metadata: {
           tokenAsset: mockAssetToken,
           tokenPriceEth: '1',
-          premiumEth: '100',
+          premiumEth: '2',
+        },
+      });
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns a finding when a FlashLoan event was emitted with the correct contract address and the premium is greater than the high threshold', async () => {
+      // set the values for the statistics stored in initializeData
+      initializeData.mean = 0.5;
+      initializeData.stdDev = 0.5;
+      initializeData.variance = 0.25;
+      initializeData.numDataPoints = 2;
+
+      // encode event data
+      const overrides = {
+        asset: mockAssetToken,
+        premium: ethers.BigNumber.from('1000000000000000000000'),
+      };
+      const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface, overrides);
+
+      const mockEvent = {
+        address: '0xMOCKLENDINGPOOLADDRESS',
+        topics: mockTopics,
+        data,
+      };
+      mockTxEvent.logs.push(mockEvent);
+
+      // mock out the price oracle call
+      mockContract.getAssetPrice = jest.fn()
+        .mockResolvedValueOnce(ethers.BigNumber.from('1000000000000000000'));
+
+      const findings = await handleTransaction(mockTxEvent);
+      const { type, severity } = config.thresholds.highThreshold;
+      const expectedFinding = Finding.fromObject({
+        name: 'Aave Treasury Fee Monitor',
+        description: 'An anomalous flash loan premium of 1000 ETH was paid to the treasury',
+        alertId: 'AE-AAVE-TREASURY-FEE',
+        type: FindingType[type],
+        severity: FindingSeverity[severity],
+        protocol: 'Aave',
+        metadata: {
+          tokenAsset: mockAssetToken,
+          tokenPriceEth: '1',
+          premiumEth: '1000',
         },
       });
       expect(findings).toStrictEqual([expectedFinding]);

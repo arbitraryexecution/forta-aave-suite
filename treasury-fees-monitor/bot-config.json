@@ -19,6 +19,15 @@
     }
   },
   "dataSet": "flashloan-dataset.csv",
-  "type": "Suspicious",
-  "severity": "Info"
+  "thresholds": {
+    "lowThreshold": {
+      "minEth": "1",
+      "type": "Info",
+      "severity": "Info"
+    },
+    "highThreshold": {
+      "type": "Suspicious",
+      "severity": "High"
+    }
+  }
 }

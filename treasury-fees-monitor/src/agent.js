@@ -42,8 +42,7 @@ function provideInitialize(data) {
     data.protocolName = config.protocolName;
     data.protocolAbbreviation = config.protocolAbbreviation;
     data.developerAbbreviation = config.developerAbbreviation;
-    data.type = config.type;
-    data.severity = config.severity;
+    data.findingLevelThresholds = config.thresholds;
 
     const {
       LendingPoolAddressesProvider: lendingPoolAddressesProvider,
@@ -140,8 +139,7 @@ function provideHandleTransaction(data) {
       flashLoanSignature,
       tokenInfo,
       priceOracleContract,
-      type,
-      severity,
+      findingLevelThresholds,
     } = data;
 
     let {
@@ -166,15 +164,30 @@ function provideHandleTransaction(data) {
       tokenPriceEth = parseFloat((new BigNumber(tokenPriceEth.toString())).div(ethDenominator));
 
       const scaledPremiumInEth = scaledPremium * tokenPriceEth;
+      const lowThresholdEth = parseInt(findingLevelThresholds.lowThreshold.minEth, 10);
+      const loanInfo = {
+        tokenAsset: log.args.asset,
+        tokenPriceEth,
+        premiumEth: scaledPremiumInEth,
+      };
+
       // if the scaled premium (in eth) of the flash loan is greater than the
       // mean + 3 standard deviations generate a finding
       if (scaledPremiumInEth > (mean + (3 * stdDev))) {
-        const loanInfo = {
-          tokenAsset: log.args.asset,
-          tokenPriceEth,
-          premiumEth: scaledPremiumInEth,
-        };
-
+        const { type, severity } = findingLevelThresholds.highThreshold;
+        finding.push(createAlert(
+          protocolName,
+          protocolAbbreviation,
+          developerAbbreviation,
+          type,
+          severity,
+          loanInfo,
+        ));
+      } else if (scaledPremiumInEth > lowThresholdEth) {
+        // if the scaled premium (in eth) of the flash loan is less than the
+        // mean + 3 standard deviations but greater than the user-defined minEth value for the
+        // low threshold, generate finding but with a lesser Finding type and severity
+        const { type, severity } = data.findingLevelThresholds.lowThreshold;
         finding.push(createAlert(
           protocolName,
           protocolAbbreviation,
