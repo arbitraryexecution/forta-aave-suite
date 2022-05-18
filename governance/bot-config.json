@@ -1,0 +1,22 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contracts": {
+    "AaveGovernanceV2": {
+      "address": "0xEC568fffba86c094cf06b22134B23074DFE2252c",
+      "abiFile": "AaveGovernanceV2.json",
+      "events": [
+        "ProposalCreated",
+        "ProposalExecuted",
+        "ProposalQueued",
+        "ProposalCanceled",
+        "VoteEmitted",
+        "VotingDelayChanged",
+        "ExecutorAuthorized",
+        "ExecutorUnauthorized",
+        "OwnershipTransferred"
+      ]
+    }
+  }
+}
