@@ -17,6 +17,15 @@ exceeds the percent threshold specified in the config.
     threshold specified in `bot-config.json`
   - Type is set to event specific value in `bot-config.json`
   - Severity is set to event specific value in `bot-config.json`
+  - The `metadata` field contains the following values:
+    - `assetTokenSymbol`
+    - `assetTokenAddress`
+    - `availableLiquidity`
+    - `totalLiquidity`
+    - `totalStableDebt`
+    - `totalVariableDebt`
+    - `currUtilizationRate`
+    - `maxUtilizationRate`
 
 ## Test Data
 
