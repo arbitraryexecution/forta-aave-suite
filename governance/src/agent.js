@@ -10,6 +10,22 @@ const config = require('../bot-config.json');
 // set up a variable to hold initialization data used in the handler
 const initializeData = {};
 
+function createProposalFromLog(log) {
+  const proposal = {
+    id: log.args.id.toString(),
+    creator: log.args.creator,
+    targets: log.args.targets.join(','),
+    // the 'values' key has to be parsed differently because `values` is a named method on Objects
+    // in JavaScript.  Also, this is why the key is prefixed with an underscore, to avoid
+    // overwriting the `values` method.
+    signatures: log.args.signatures.join(','),
+    calldatas: log.args.calldatas.join(','),
+    startBlock: log.args.startBlock.toString(),
+    endBlock: log.args.endBlock.toString(),
+  };
+  return proposal;
+}
+
 function createAlert(
   contractAddress, contractName, eventName, developerAbbrev, protocolName, protocolAbbrev,
 ) {
@@ -31,7 +47,7 @@ function createAlert(
 function proposalCreatedFinding(proposal, address, config) {
   return Finding.fromObject({
     name: `${config.protocolName} Governance Proposal Created`,
-    description: `Governance Proposal ${proposal.proposalId} was just created`,
+    description: `Governance Proposal ${proposal.id} was just created`,
     alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-CREATED`,
     type: 'Info',
     severity: 'Info',
@@ -43,35 +59,28 @@ function proposalCreatedFinding(proposal, address, config) {
   });
 }
 
-function voteCastFinding(voteInfo, address, config) {
-  let description = `Vote cast with weight ${voteInfo.weight.toString()}`;
-  switch (voteInfo.support) {
-    case 0:
-      description += ' against';
-      break;
-    case 1:
+function voteEmittedFinding(voteInfo, address, config) {
+  console.log(voteInfo);
+  let description = `Vote emitted with weight ${voteInfo.votingPower.toString()}`;
+  if (voteInfo.support) {
       description += ' in support of';
-      break;
-    case 2:
-      description += ' abstaining from';
-      break;
-    default:
-      description += ` with unknown support "${voteInfo.support}" for`;
+  } else {
+      description += ' against';
   }
-  description += ` proposal ${voteInfo.proposalId}`;
+  description += ` proposal ${voteInfo.id}`;
 
   return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Vote Cast`,
+    name: `${config.protocolName} Governance Proposal Vote Emitted`,
     description,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTE-CAST`,
+    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTE-EMITTED`,
     type: 'Info',
     severity: 'Info',
     protocol: config.protocolName,
     metadata: {
+      id: voteInfo.id.toString(),
       address,
       voter: voteInfo.voter,
-      weight: voteInfo.weight.toString(),
-      reason: voteInfo.reason,
+      weight: voteInfo.votingPower.toString(),
     },
   });
 }
@@ -80,13 +89,13 @@ function proposalCanceledFinding(proposalId, address, config) {
   return Finding.fromObject({
     name: `${config.protocolName} Governance Proposal Canceled`,
     description: `Governance proposal ${proposalId} has been canceled`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-PROPOSAL-CANCELED`,
+    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-CANCELED`,
     type: 'Info',
     severity: 'Info',
     protocol: config.protocolName,
     metadata: {
       address,
-      proposalId,
+      id: proposalId,
       state: 'canceled',
     },
   });
@@ -96,13 +105,13 @@ function proposalExecutedFinding(proposalId, address, config) {
   return Finding.fromObject({
     name: `${config.protocolName} Governance Proposal Executed`,
     description: `Governance proposal ${proposalId} has been executed`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-PROPOSAL-EXECUTED`,
+    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-EXECUTED`,
     type: 'Info',
     severity: 'Info',
     protocol: config.protocolName,
     metadata: {
       address,
-      proposalId,
+      id: proposalId,
       state: 'executed',
     },
   });
@@ -111,15 +120,14 @@ function proposalExecutedFinding(proposalId, address, config) {
 function proposalQueuedFinding(proposalId, address, config, eta) {
   return Finding.fromObject({
     name: `${config.protocolName} Governance Proposal Queued`,
-    description: `Governance Proposal ${proposalId} has been queued`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-PROPOSAL-QUEUED`,
+    description: `Governance proposal ${proposalId} has been queued`,
+    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-QUEUED`,
     type: 'Info',
     severity: 'Info',
     protocol: config.protocolName,
     metadata: {
       address,
-      eta,
-      proposalId,
+      id: proposalId,
       state: 'queued',
     },
   });
@@ -260,16 +268,18 @@ function provideHandleTransaction(data) {
               data,
             );
           case 'ProposalExecuted':
-            return proposalExecutedFinding(log.args.proposalId.toString(), address, data);
+            return proposalExecutedFinding(log.args.id.toString(), address, data);
           case 'ProposalQueued':
             return proposalQueuedFinding(
-              log.args.proposalId.toString(),
+              log.args.id.toString(),
               address,
               data,
-              log.args.eta.toString(),
             );
           case 'ProposalCanceled':
-            return proposalCanceledFinding(log.args.proposalId.toString(), address, data);
+            return proposalCanceledFinding(log.args.id.toString(), address, data);
+          case 'VoteEmitted':
+            console.log(log.args);
+            return voteEmittedFinding(log.args, address, data);
           default:
             return undefined;
         }
