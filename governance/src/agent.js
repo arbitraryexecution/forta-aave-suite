@@ -26,23 +26,6 @@ function createProposalFromLog(log) {
   return proposal;
 }
 
-function createAlert(
-  contractAddress, contractName, eventName, developerAbbrev, protocolName, protocolAbbrev,
-) {
-  return Finding.fromObject({
-    name: `${protocolName} Admin Event`,
-    description: `The ${eventName} event was emitted by the ${contractName} contract`,
-    alertId: `${developerAbbrev}-${protocolAbbrev}-GOVERNANCE`,
-    type: FindingType.Suspicious,
-    severity: FindingSeverity.Low,
-    metadata: {
-      contractName,
-      contractAddress,
-      eventName,
-    },
-  });
-}
-
 // alert for when a new governance proposal is created
 function proposalCreatedFinding(proposal, address, config) {
   return Finding.fromObject({
@@ -60,7 +43,6 @@ function proposalCreatedFinding(proposal, address, config) {
 }
 
 function voteEmittedFinding(voteInfo, address, config) {
-  console.log(voteInfo);
   let description = `Vote emitted with weight ${voteInfo.votingPower.toString()}`;
   if (voteInfo.support) {
       description += ' in support of';
@@ -133,86 +115,6 @@ function proposalQueuedFinding(proposalId, address, config, eta) {
   });
 }
 
-function quorumNumeratorUpdatedFinding(address, config, oldNum, newNum) {
-  return Finding.fromObject({
-    name: `${config.protocolName} Governance Quorum Numerator Updated`,
-    description: `Quorum numerator updated from ${oldNum} to ${newNum}`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-QUORUM-NUMERATOR-UPDATED`,
-    type: 'Info',
-    severity: 'Info',
-    protocol: config.protocolName,
-    metadata: {
-      address,
-      oldNumerator: oldNum,
-      newNumerator: newNum,
-    },
-  });
-}
-
-function timelockChangeFinding(address, config, oldAddress, newAddress) {
-  return Finding.fromObject({
-    name: `${config.protocolName} Governance Timelock Address Change`,
-    description: `Timelock address changed from ${oldAddress} to ${newAddress}`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-TIMELOCK-ADDRESS-CHANGED`,
-    type: 'Info',
-    severity: 'Info',
-    protocol: config.protocolName,
-    metadata: {
-      address,
-      oldTimelockAddress: oldAddress,
-      newTimelockAddress: newAddress,
-    },
-  });
-}
-
-function votingDelaySetFinding(address, config, oldDelay, newDelay) {
-  return Finding.fromObject({
-    name: `${config.protocolName} Governance Voting Delay Set`,
-    description: `Voting delay change from ${oldDelay} to ${newDelay}`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-VOTING-DELAY-SET`,
-    type: 'Info',
-    severity: 'Info',
-    protocol: config.protocolName,
-    metadata: {
-      address,
-      oldVotingDelay: oldDelay,
-      newVotingDelay: newDelay,
-    },
-  });
-}
-
-function votingPeriodSetFinding(address, config, oldPeriod, newPeriod) {
-  return Finding.fromObject({
-    name: `${config.protocolName} Governance Voting Period Set`,
-    description: `Voting period change from ${oldPeriod} to ${newPeriod}`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-VOTING-PERIOD-SET`,
-    type: 'Info',
-    severity: 'Info',
-    protocol: config.protocolName,
-    metadata: {
-      address,
-      oldVotingPeriod: oldPeriod,
-      newVotingPeriod: newPeriod,
-    },
-  });
-}
-
-function proposalThresholdSetFinding(address, config, oldThresh, newThresh) {
-  return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Threshold Set`,
-    description: `Proposal threshold change from ${oldThresh} to ${newThresh}`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-GOVERNANCE-PROPOSAL-THRESHOLD-SET`,
-    type: 'Info',
-    severity: 'Info',
-    protocol: config.protocolName,
-    metadata: {
-      address,
-      oldThreshold: oldThresh,
-      newThreshold: newThresh,
-    },
-  });
-}
-
 function provideInitialize(data) {
   return async function initialize() {
     /* eslint-disable no-param-reassign */
@@ -278,7 +180,6 @@ function provideHandleTransaction(data) {
           case 'ProposalCanceled':
             return proposalCanceledFinding(log.args.id.toString(), address, data);
           case 'VoteEmitted':
-            console.log(log.args);
             return voteEmittedFinding(log.args, address, data);
           default:
             return undefined;
