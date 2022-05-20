@@ -45,7 +45,7 @@ async function getBlockByTimestamp(provider, userTimestamp) {
       highBlockTimestamp = newBlockTimestamp;
       highBlockNumber = newBlockNumber;
     } else if (newBlockTimestamp < userTimestamp) {
-      // if the retrieved timestamp is lower than we expected, shift the high block down
+      // if the retrieved timestamp is lower than we expected, shift the low block up
       lowBlock = newBlock;
       lowBlockTimestamp = newBlockTimestamp;
       lowBlockNumber = newBlockNumber;
