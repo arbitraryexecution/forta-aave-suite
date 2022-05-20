@@ -13,7 +13,9 @@ const initializeData = {};
 
 const DECIMALS_ABI = ['function decimals() view returns (uint)'];
 
-function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severity, tokenInfo, addresses) {
+function createAlert(
+  protocolName, protocolAbbrev, developerAbbrev, type, severity, tokenInfo, addresses,
+) {
   const {
     tokenAsset,
     tokenPriceEth,
@@ -81,11 +83,13 @@ function provideInitialize(data) {
     // get all aToken addresses from the protocol data provider contract
     data.tokenInfo = {};
     const tokenAddresses = await protocolDataProviderContract.getAllReservesTokens();
+    const tokenAddressesList = [];
     // for each token address returned get its respective decimals
     await Promise.all(tokenAddresses.map(async (token) => {
       // token is an array where the first element is the token symbol and the second element is
       // the address
       const tokenAddress = token[1];
+      tokenAddressesList.push(tokenAddress);
       const tokenContract = new ethers.Contract(tokenAddress, DECIMALS_ABI, provider);
       const tokenDecimals = await tokenContract.decimals();
       data.tokenInfo[tokenAddress] = tokenDecimals.toString();
@@ -101,7 +105,6 @@ function provideInitialize(data) {
     );
 
     // for each asset retrieve a spot price that will be used when computing statistics
-    const tokenAddressesList = tokenAddresses.map((token) => token[1]);
     // the spot prices given by the Aave price oracle are in 'ETH wei' units
     const denominatorWei = (new BigNumber(10)).pow(18);
     const spotPricesScaledEth = {};
@@ -109,7 +112,8 @@ function provideInitialize(data) {
     const spotPricesEth = await data.priceOracleContract.getAssetsPrices(tokenAddressesList);
     // iterate over each price, correlate it with its associated asset token, and scale the price
     spotPricesEth.forEach((price, index) => {
-      spotPricesScaledEth[tokenAddressesList[index]] = new BigNumber(price.toString()).div(denominatorWei);
+      spotPricesScaledEth[tokenAddressesList[index]] = new BigNumber(price.toString())
+        .div(denominatorWei);
     });
 
     // parse the csv file specified in the config file and calculate mean, standard deviation,
@@ -150,7 +154,7 @@ function provideHandleTransaction(data) {
 
     let addresses = Object.keys(txEvent.addresses).map((addr) => addr.toLowerCase());
     addresses = addresses.filter((addr) => addr !== 'undefined');
-    
+
     const parsedLogs = txEvent.filterLog(flashLoanSignature, lendingPoolAddress);
     const findings = (await Promise.all(parsedLogs.map(async (log) => {
       const finding = [];

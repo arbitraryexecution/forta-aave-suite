@@ -18,6 +18,7 @@ jest.mock('fs', () => ({
 const {
   Finding, FindingType, FindingSeverity, ethers, TransactionEvent,
 } = require('forta-agent');
+const BigNumber = require('bignumber.js');
 
 const { provideHandleTransaction, provideInitialize } = require('./agent');
 const {
@@ -124,21 +125,25 @@ describe('check bot configuration file', () => {
 
 describe('test helper functions', () => {
   it('calculateStatistics returns the correct output given a specific input', () => {
-    let result = calculateStatistics(0, 0, 0, 10);
+    let result = calculateStatistics(
+      new BigNumber(0), new BigNumber(0), BigNumber(0), BigNumber(10),
+    );
     let expectedResult = {
-      mean: 10,
-      stdDev: 0,
-      variance: 0,
-      numDataPoints: 1,
+      mean: new BigNumber(10),
+      stdDev: new BigNumber(0),
+      variance: new BigNumber(0),
+      numDataPoints: new BigNumber(1),
     };
     expect(result).toStrictEqual(expectedResult);
 
-    result = calculateStatistics(10, 0, 1, 11);
+    result = calculateStatistics(
+      new BigNumber(10), new BigNumber(0), new BigNumber(1), new BigNumber(11),
+    );
     expectedResult = {
-      mean: 10.5,
-      stdDev: 0.5,
-      variance: 0.25,
-      numDataPoints: 2,
+      mean: new BigNumber(10.5),
+      stdDev: new BigNumber(0.5),
+      variance: new BigNumber(0.25),
+      numDataPoints: new BigNumber(2),
     };
     expect(result).toStrictEqual(expectedResult);
   });
@@ -154,10 +159,10 @@ describe('test helper functions', () => {
     mockReadStream.mockReturnValueOnce(mockStream);
     const result = await parseCsvAndCompute('', mockTokenInfo, mockTokenPrice);
     const expectedResult = {
-      mean: 1,
-      stdDev: 0,
-      variance: 0,
-      numDataPoints: 1,
+      mean: new BigNumber(1),
+      stdDev: new BigNumber(0),
+      variance: new BigNumber(0),
+      numDataPoints: new BigNumber(1),
     };
     expect(result).toStrictEqual(expectedResult);
   });
@@ -230,16 +235,16 @@ describe('monitor treasury fee premiums from flash loan events', () => {
 
     it('returns empty findings when a FlashLoan event was emitted with the correct contract address but the premium is within the thresholds', async () => {
       // set the values for the statistics stored in initializeData
-      initializeData.mean = 0;
-      initializeData.stdDev = 0;
-      initializeData.variance = 0;
-      initializeData.numDataPoints = 1;
+      initializeData.mean = new BigNumber(0);
+      initializeData.stdDev = new BigNumber(0);
+      initializeData.variance = new BigNumber(0);
+      initializeData.numDataPoints = new BigNumber(1);
 
       // encode event data
       // since we do not want to generate a finding, set the premium to 0
       const overrides = {
         asset: mockAssetToken,
-        premium: 0,
+        premium: ethers.BigNumber.from(0),
       };
       const { mockTopics, data } = createMockEventLogs(flashLoanObject, iface, overrides);
 
@@ -256,18 +261,18 @@ describe('monitor treasury fee premiums from flash loan events', () => {
 
       const findings = await handleTransaction(mockTxEvent);
       expect(findings).toStrictEqual([]);
-      expect(initializeData.mean).toBe(0);
-      expect(initializeData.numDataPoints).toBe(2);
-      expect(initializeData.stdDev).toBe(0);
-      expect(initializeData.variance).toBe(0);
+      expect(initializeData.mean.toString()).toBe('0');
+      expect(initializeData.numDataPoints.toString()).toBe('2');
+      expect(initializeData.stdDev.toString()).toBe('0');
+      expect(initializeData.variance.toString()).toBe('0');
     });
 
     it('returns a finding when a FlashLoan event was emitted with the correct contract address and the premium is greater than the low threshold', async () => {
       // set the values for the statistics stored in initializeData
-      initializeData.mean = 0.5;
-      initializeData.stdDev = 0.5;
-      initializeData.variance = 0.25;
-      initializeData.numDataPoints = 2;
+      initializeData.mean = new BigNumber(0.5);
+      initializeData.stdDev = new BigNumber(0.5);
+      initializeData.variance = new BigNumber(0.25);
+      initializeData.numDataPoints = new BigNumber(2);
 
       // since we want to generate a finding using the type and severity of the low threshold, parse
       // the low threshold minEth value from the config and add one
@@ -307,16 +312,17 @@ describe('monitor treasury fee premiums from flash loan events', () => {
           tokenPriceEth: '1',
           premiumEth: '2',
         },
+        addresses: [],
       });
       expect(findings).toStrictEqual([expectedFinding]);
     });
 
     it('returns a finding when a FlashLoan event was emitted with the correct contract address and the premium is greater than the high threshold', async () => {
       // set the values for the statistics stored in initializeData
-      initializeData.mean = 0.5;
-      initializeData.stdDev = 0.5;
-      initializeData.variance = 0.25;
-      initializeData.numDataPoints = 2;
+      initializeData.mean = new BigNumber(0.5);
+      initializeData.stdDev = new BigNumber(0.5);
+      initializeData.variance = new BigNumber(0.25);
+      initializeData.numDataPoints = new BigNumber(2);
 
       // encode event data
       const overrides = {
@@ -350,6 +356,7 @@ describe('monitor treasury fee premiums from flash loan events', () => {
           tokenPriceEth: '1',
           premiumEth: '1000',
         },
+        addresses: [],
       });
       expect(findings).toStrictEqual([expectedFinding]);
     });

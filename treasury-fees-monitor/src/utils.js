@@ -10,18 +10,20 @@ function getAbi(abiName) {
 }
 
 function calculateStatistics(currMean, currVariance, currNumDataPoints, newValue) {
-  let newMean = 0;
-  let newStdDev = 0;
-  let newVariance = 0;
-  let newNumDataPoints = currNumDataPoints + 1;
+  let newMean = new BigNumber(0);
+  let newStdDev = new BigNumber(0);
+  let newVariance = new BigNumber(0);
+  let newNumDataPoints = currNumDataPoints.plus(1);
 
-  if (currNumDataPoints === 0) {
+  if (currNumDataPoints.eq(0)) {
     newMean = newValue;
-    newNumDataPoints = 1;
+    newNumDataPoints = new BigNumber(1);
   } else {
     newMean = ((currMean.times(currNumDataPoints)).plus(newValue)).div(newNumDataPoints);
     const newDataPoint = (newValue.minus(newMean)).times(newValue.minus(currMean));
-    newVariance = ((currVariance.times(currNumDataPoints)).plus(newDataPoint)).div(newNumDataPoints);
+    newVariance = (
+      (currVariance.times(currNumDataPoints)).plus(newDataPoint)
+    ).div(newNumDataPoints);
     newStdDev = newVariance.sqrt();
   }
 
@@ -62,7 +64,7 @@ async function parseCsvAndCompute(csvFileName, tokenInfo, tokenPriceInfo) {
         premiumsInEth.push(premiumInEth);
       })
       .on('end', () => {
-        const numDataPoints = premiumsInEth.length;
+        const numDataPoints = new BigNumber(premiumsInEth.length);
         const mean = BigNumber.sum(...premiumsInEth).div(numDataPoints);
         const squaredDifferences = premiumsInEth.map((sample) => sample.minus(mean).pow(2));
         const variance = BigNumber.sum(...squaredDifferences).div(numDataPoints);
