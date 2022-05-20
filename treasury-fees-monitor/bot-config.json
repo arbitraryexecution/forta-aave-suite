@@ -1,0 +1,33 @@
+{
+  "developerAbbreviation": "AE",
+  "protocolName": "Aave",
+  "protocolAbbreviation": "AAVE",
+  "contracts": {
+    "LendingPoolAddressesProvider": {
+      "address": "0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5",
+      "abiFile": "LendingPoolAddressesProvider.json"
+    },
+    "ProtocolDataProvider": {
+      "address": "0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d",
+      "abiFile": "AaveProtocolDataProvider.json"
+    },
+    "PriceOracle": {
+      "abiFile": "AaveOracle.json"
+    },
+    "LendingPool": {
+      "abiFile": "LendingPool.json"
+    }
+  },
+  "dataSet": "flashloan-dataset.csv",
+  "thresholds": {
+    "lowThreshold": {
+      "minEth": "1",
+      "type": "Info",
+      "severity": "Info"
+    },
+    "highThreshold": {
+      "type": "Suspicious",
+      "severity": "High"
+    }
+  }
+}
