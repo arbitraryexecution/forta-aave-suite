@@ -40,7 +40,7 @@ describe('check bot configuration file', () => {
   it('contracts key required', () => {
     const { contracts } = config;
     expect(typeof (contracts)).toBe('object');
-    expect(contracts).not.toBe({});
+    expect(Object.keys(contracts).length).not.toBe(0);
   });
 
   it('contracts key values must be valid', () => {
@@ -59,8 +59,13 @@ describe('check bot configuration file', () => {
   });
 
   it('ratioSettings values must be valid', () => {
-    const { ratioSettings } = config;
-    const { maxUtilizationRate, type, severity } = ratioSettings;
+    const {
+      ratioSettings: {
+        maxUtilizationRate,
+        type,
+        severity,
+      },
+    } = config;
 
     // check that maxUtilizationRate is of type 'number'
     expect(typeof (maxUtilizationRate)).toBe('number');
@@ -135,7 +140,7 @@ describe('monitor borrow to collateral ratio', () => {
       const findings = await handleBlock();
       const expectedFinding = Finding.fromObject({
         name: 'Aave Borrow Collateral Ratio',
-        description: 'The ratio of total borrow amount to total liquidity exceeds the configured '
+        description: 'The ratio of total borrow amount to total collateral exceeds the configured '
           + `threshold of 90% for asset ${mockAssetTokenAddress} (${mockSymbol})`,
         alertId: 'AE-AAVE-BORROW-COLLATERAL-RATIO',
         type: FindingType.Info,

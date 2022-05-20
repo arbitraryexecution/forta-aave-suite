@@ -16,7 +16,7 @@ function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severi
   const { assetTokenSymbol, assetTokenAddress, maxUtilizationRate } = metadata;
   return Finding.fromObject({
     name: `${protocolName} Borrow Collateral Ratio`,
-    description: 'The ratio of total borrow amount to total liquidity exceeds the configured '
+    description: 'The ratio of total borrow amount to total collateral exceeds the configured '
       + `threshold of ${maxUtilizationRate}% for asset ${assetTokenAddress} (${assetTokenSymbol})`,
     alertId: `${developerAbbrev}-${protocolAbbrev}-BORROW-COLLATERAL-RATIO`,
     type: FindingType[type],
@@ -62,7 +62,7 @@ function provideInitialize(data) {
       const { tokenAddress } = token;
       const tokenContract = new ethers.Contract(tokenAddress, DECIMALS_ABI, provider);
       const decimals = await tokenContract.decimals();
-      data.tokenDecimals[tokenAddress] = decimals.toString();
+      data.tokenDecimals[tokenAddress] = (new BigNumber(10)).pow(decimals.toString());
     }));
     /* eslint-enable no-param-reassign */
   };
@@ -87,7 +87,7 @@ function provideHandleBlock(data) {
     const promises = assetTokens.map(async (assetToken) => {
       const finding = [];
       const { symbol, tokenAddress } = assetToken;
-      const denominator = (new BigNumber(10)).pow(tokenDecimals[tokenAddress]);
+      const denominator = tokenDecimals[tokenAddress];
 
       // get the data necessary to calculate a ratio between total borrows and collateral
       const assetTokenData = await protocolDataProviderContract.getReserveData(tokenAddress);
