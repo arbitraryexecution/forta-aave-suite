@@ -86,7 +86,7 @@ describe('check bot configuration file', () => {
   it('contracts key required', () => {
     const { contracts } = config;
     expect(typeof (contracts)).toBe('object');
-    expect(contracts).not.toBe({});
+    expect(Object.keys(contracts).length).not.toBe(0);
   });
 
   it('contracts key values must be valid', () => {
@@ -236,7 +236,7 @@ describe('monitor treasury fee premiums from flash loan events', () => {
       initializeData.numDataPoints = 1;
 
       // encode event data
-      // since do not want to generate a finding, set the premium to 0
+      // since we do not want to generate a finding, set the premium to 0
       const overrides = {
         asset: mockAssetToken,
         premium: 0,

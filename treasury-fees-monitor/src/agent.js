@@ -13,7 +13,7 @@ const initializeData = {};
 
 const DECIMALS_ABI = ['function decimals() view returns (uint)'];
 
-function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severity, tokenInfo) {
+function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severity, tokenInfo, addresses) {
   const {
     tokenAsset,
     tokenPriceEth,
@@ -22,7 +22,7 @@ function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severi
 
   return Finding.fromObject({
     name: `${protocolName} Treasury Fee Monitor`,
-    description: `An anomalous flash loan premium of ${premiumEth} ETH was paid to the treasury`,
+    description: `An anomalous flash loan premium of ${premiumEth.toString()} ETH was paid to the treasury`,
     alertId: `${developerAbbrev}-${protocolAbbrev}-TREASURY-FEE`,
     type: FindingType[type],
     severity: FindingSeverity[severity],
@@ -32,6 +32,7 @@ function createAlert(protocolName, protocolAbbrev, developerAbbrev, type, severi
       tokenPriceEth: tokenPriceEth.toString(),
       premiumEth: premiumEth.toString(),
     },
+    addresses,
   });
 }
 
@@ -108,9 +109,7 @@ function provideInitialize(data) {
     const spotPricesEth = await data.priceOracleContract.getAssetsPrices(tokenAddressesList);
     // iterate over each price, correlate it with its associated asset token, and scale the price
     spotPricesEth.forEach((price, index) => {
-      spotPricesScaledEth[tokenAddressesList[index]] = parseFloat(
-        (new BigNumber(price.toString())).div(denominatorWei),
-      );
+      spotPricesScaledEth[tokenAddressesList[index]] = new BigNumber(price.toString()).div(denominatorWei);
     });
 
     // parse the csv file specified in the config file and calculate mean, standard deviation,
@@ -149,22 +148,23 @@ function provideHandleTransaction(data) {
       numDataPoints,
     } = data;
 
+    let addresses = Object.keys(txEvent.addresses).map((addr) => addr.toLowerCase());
+    addresses = addresses.filter((addr) => addr !== 'undefined');
+    
     const parsedLogs = txEvent.filterLog(flashLoanSignature, lendingPoolAddress);
     const findings = (await Promise.all(parsedLogs.map(async (log) => {
       const finding = [];
       // scale the found premium using the decimals value in tokenInfo
       const denominator = (new BigNumber(10)).pow(tokenInfo[log.args.asset]);
-      const scaledPremium = parseFloat(
-        (new BigNumber(log.args.premium.toString())).div(denominator),
-      );
+      const scaledPremium = new BigNumber(log.args.premium.toString()).div(denominator);
 
       // query the price oracle for the current price of the token asset in ETH
       const ethDenominator = (new BigNumber(10)).pow(18);
       let tokenPriceEth = await priceOracleContract.getAssetPrice(log.args.asset);
-      tokenPriceEth = parseFloat((new BigNumber(tokenPriceEth.toString())).div(ethDenominator));
+      tokenPriceEth = new BigNumber(tokenPriceEth.toString()).div(ethDenominator);
 
-      const scaledPremiumInEth = scaledPremium * tokenPriceEth;
-      const lowThresholdEth = parseInt(findingLevelThresholds.lowThreshold.minEth, 10);
+      const scaledPremiumInEth = scaledPremium.times(tokenPriceEth);
+      const lowThresholdEth = new BigNumber(findingLevelThresholds.lowThreshold.minEth);
       const loanInfo = {
         tokenAsset: log.args.asset,
         tokenPriceEth,
@@ -173,7 +173,9 @@ function provideHandleTransaction(data) {
 
       // if the scaled premium (in eth) of the flash loan is greater than the
       // mean + 3 standard deviations generate a finding
-      if (scaledPremiumInEth > (mean + (3 * stdDev))) {
+      const stdDevBN = new BigNumber(stdDev);
+      const alertThreshold = new BigNumber(mean).plus(stdDevBN.times(3));
+      if (scaledPremiumInEth.gt(alertThreshold)) {
         const { type, severity } = findingLevelThresholds.highThreshold;
         finding.push(createAlert(
           protocolName,
@@ -182,8 +184,9 @@ function provideHandleTransaction(data) {
           type,
           severity,
           loanInfo,
+          addresses,
         ));
-      } else if (scaledPremiumInEth > lowThresholdEth) {
+      } else if (scaledPremiumInEth.gt(lowThresholdEth)) {
         // if the scaled premium (in eth) of the flash loan is less than the
         // mean + 3 standard deviations but greater than the user-defined minEth value for the
         // low threshold, generate finding but with a lesser Finding type and severity
@@ -195,6 +198,7 @@ function provideHandleTransaction(data) {
           type,
           severity,
           loanInfo,
+          addresses,
         ));
       }
 

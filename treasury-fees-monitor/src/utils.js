@@ -19,12 +19,10 @@ function calculateStatistics(currMean, currVariance, currNumDataPoints, newValue
     newMean = newValue;
     newNumDataPoints = 1;
   } else {
-    newMean = (currMean * (currNumDataPoints / newNumDataPoints)) + (newValue / newNumDataPoints);
-    newVariance = (
-      (((currVariance * currNumDataPoints) + ((newValue - newMean) * (newValue - currMean)))
-        / newNumDataPoints)
-    );
-    newStdDev = Math.sqrt(newVariance);
+    newMean = ((currMean.times(currNumDataPoints)).plus(newValue)).div(newNumDataPoints);
+    const newDataPoint = (newValue.minus(newMean)).times(newValue.minus(currMean));
+    newVariance = ((currVariance.times(currNumDataPoints)).plus(newDataPoint)).div(newNumDataPoints);
+    newStdDev = newVariance.sqrt();
   }
 
   return {
@@ -37,28 +35,42 @@ function calculateStatistics(currMean, currVariance, currNumDataPoints, newValue
 
 async function parseCsvAndCompute(csvFileName, tokenInfo, tokenPriceInfo) {
   return new Promise((resolve, reject) => {
-    let mean = 0;
-    let stdDev = 0;
-    let variance = 0;
-    let numDataPoints = 0;
+    let denominator;
+    let tokenPrice;
+    const denominators = {};
+    const tokenPrices = {};
+    const premiumsInEth = [];
 
     fs.createReadStream(`${__dirname}/${csvFileName}`)
       .pipe(csv())
       .on('data', (data) => {
         // scale the premium for each row of data in the CSV file by the given asset's decimals
-        const denominator = (new BigNumber(10)).pow(tokenInfo[data.asset]);
-        const scaledPremium = parseFloat(
-          (new BigNumber(data.premium)).div(denominator),
-        );
-        const premiumInEth = scaledPremium * tokenPriceInfo[data.asset];
+        denominator = denominators[data.asset];
+        if (denominator === undefined) {
+          denominator = new BigNumber(10).pow(tokenInfo[data.asset]);
+          denominators[data.asset] = denominator;
+        }
 
-        ({
-          mean, stdDev, variance, numDataPoints,
-        } = calculateStatistics(mean, variance, numDataPoints, premiumInEth));
+        tokenPrice = tokenPrices[data.asset];
+        if (tokenPrice === undefined) {
+          tokenPrice = new BigNumber(tokenPriceInfo[data.asset]);
+          tokenPrices[data.asset] = tokenPrice;
+        }
+
+        const scaledPremium = new BigNumber(data.premium).div(denominator);
+        const premiumInEth = scaledPremium.times(tokenPrice);
+        premiumsInEth.push(premiumInEth);
       })
-      .on('end', () => resolve({
-        mean, stdDev, variance, numDataPoints,
-      }))
+      .on('end', () => {
+        const numDataPoints = premiumsInEth.length;
+        const mean = BigNumber.sum(...premiumsInEth).div(numDataPoints);
+        const squaredDifferences = premiumsInEth.map((sample) => sample.minus(mean).pow(2));
+        const variance = BigNumber.sum(...squaredDifferences).div(numDataPoints);
+        const stdDev = variance.sqrt();
+        resolve({
+          mean, stdDev, variance, numDataPoints,
+        });
+      })
       .on('error', () => reject());
   });
 }

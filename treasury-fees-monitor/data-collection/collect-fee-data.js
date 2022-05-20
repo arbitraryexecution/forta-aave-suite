@@ -16,8 +16,8 @@ async function getBlockByTimestamp(provider, userTimestamp) {
   let lowBlockTimestamp = lowBlock.timestamp;
 
   // starting value for high block
-  let highBlockNumber = await provider.getBlockNumber();
-  let highBlock = await provider.getBlock(highBlockNumber);
+  let highBlock = await provider.getBlock('latest');
+  let highBlockNumber = highBlock.number;
   let highBlockTimestamp = highBlock.timestamp;
 
   // iterate until we find the two blocks whose timestamps bound the requested timestamp
@@ -61,8 +61,8 @@ async function getBlockByTimestamp(provider, userTimestamp) {
 }
 
 async function collectData(provider, filterInfo, timePeriod) {
-  const endBlockNum = await provider.getBlockNumber();
-  const endBlock = await provider.getBlock(endBlockNum);
+  const endBlock = await provider.getBlock('latest');
+  const endBlockNum = endBlock.number;
 
   const startTimestamp = (endBlock.timestamp - (timePeriod * SECONDS_IN_DAY));
   const startBlock = await getBlockByTimestamp(provider, startTimestamp);
@@ -71,7 +71,7 @@ async function collectData(provider, filterInfo, timePeriod) {
   // chunk each getLogs call into a smaller block range so there is less of a chance that a
   // 'too many logs' type error occurs
   const promises = [];
-  for (let i = startBlockNum; i <= endBlockNum; i += BLOCK_CHUNK) {
+  for (let i = startBlockNum; i <= endBlockNum; i += BLOCK_CHUNK + 1) {
     const filterBlockStart = i;
     const filterBlockEnd = (i + BLOCK_CHUNK > endBlockNum) ? endBlockNum : i + BLOCK_CHUNK;
 
@@ -118,7 +118,7 @@ async function writeToCSV(format, dataSet, fileName) {
 }
 
 (async () => {
-  const provider = new ethers.providers.JsonRpcProvider(process.env.JSON_RPC_URL);
+  const provider = new ethers.providers.JsonRpcBatchProvider(process.env.JSON_RPC_URL);
 
   // command line options
   // abi filename, event to search for, time period (days) (optional), output file name (optional)
