@@ -357,5 +357,208 @@ describe('monitor governance contracts for emitted events', () => {
 
       expect(findings).toStrictEqual([expectedFinding]);
     });
+
+    it('returns findings if contract address matches and Executor Authorized was emitted', async () => {
+      const eventsInAbi = getObjectsFromAbi(abi, 'event');
+      const validEvent = eventsInAbi.ExecutorAuthorized;
+
+      // encode event data - valid event with valid arguments
+      const { mockArgs, mockTopics, data } = createMockEventLogs(
+        validEvent,
+        iface,
+      );
+
+      // update mock transaction event
+      const defaultLog = {};
+      defaultLog.address = validContractAddress;
+      defaultLog.topics = mockTopics;
+      defaultLog.data = data;
+      defaultLog.args = mockArgs;
+      mockTxEvent.logs.push(defaultLog);
+
+      const findings = await handleTransaction(mockTxEvent);
+
+      const executorInfo = {
+        executor: '0x0000000000000000000000000000000000000000',
+        state: 'executor-authorized',
+      };
+      const expectedFinding = Finding.fromObject({
+        name: `${config.protocolName} Governance Executor Authorized`,
+        description: `Authorized executor ${defaultLog.args.executor}`,
+        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-EXECUTOR-AUTHORIZED`,
+        type: 'Info',
+        severity: 'High',
+        protocol: config.protocolName,
+        metadata: {
+          address: validContractAddress,
+          ...executorInfo,
+        },
+      });
+
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns findings if contract address matches and Executor Unauthorized was emitted', async () => {
+      const eventsInAbi = getObjectsFromAbi(abi, 'event');
+      const validEvent = eventsInAbi.ExecutorUnauthorized;
+
+      // encode event data - valid event with valid arguments
+      const { mockArgs, mockTopics, data } = createMockEventLogs(
+        validEvent,
+        iface,
+      );
+
+      // update mock transaction event
+      const defaultLog = {};
+      defaultLog.address = validContractAddress;
+      defaultLog.topics = mockTopics;
+      defaultLog.data = data;
+      defaultLog.args = mockArgs;
+      mockTxEvent.logs.push(defaultLog);
+
+      const findings = await handleTransaction(mockTxEvent);
+
+      const executorInfo = {
+        executor: '0x0000000000000000000000000000000000000000',
+        state: 'executor-unauthorized',
+      };
+      const expectedFinding = Finding.fromObject({
+        name: `${config.protocolName} Governance Executor Unauthorized`,
+        description: `Deauthorized executor ${defaultLog.args.executor}`,
+        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-EXECUTOR-UNAUTHORIZED`,
+        type: 'Info',
+        severity: 'High',
+        protocol: config.protocolName,
+        metadata: {
+          address: validContractAddress,
+          ...executorInfo,
+        },
+      });
+
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns findings if contract address matches and Governance Strategy Changed was emitted', async () => {
+      const eventsInAbi = getObjectsFromAbi(abi, 'event');
+      const validEvent = eventsInAbi.GovernanceStrategyChanged;
+
+      // encode event data - valid event with valid arguments
+      const { mockArgs, mockTopics, data } = createMockEventLogs(
+        validEvent,
+        iface,
+      );
+
+      // update mock transaction event
+      const defaultLog = {};
+      defaultLog.address = validContractAddress;
+      defaultLog.topics = mockTopics;
+      defaultLog.data = data;
+      defaultLog.args = mockArgs;
+      mockTxEvent.logs.push(defaultLog);
+
+      const findings = await handleTransaction(mockTxEvent);
+
+      const strategyInfo = {
+        initiatorChange: '0x0000000000000000000000000000000000000000',
+        newStrategy: '0x0000000000000000000000000000000000000000',
+        state: 'strategy-changed',
+      };
+      const expectedFinding = Finding.fromObject({
+        name: `${config.protocolName} Governance Strategy Changed`,
+        description: `Governance strategy changed to ${defaultLog.args.newStrategy} by ${defaultLog.args.initiatorChange}`,
+        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-STRATEGY-CHANGED`,
+        type: 'Info',
+        severity: 'High',
+        protocol: config.protocolName,
+        metadata: {
+          address: validContractAddress,
+          ...strategyInfo,
+        },
+      });
+
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns findings if contract address matches and Ownership Transferred was emitted', async () => {
+      const eventsInAbi = getObjectsFromAbi(abi, 'event');
+      const validEvent = eventsInAbi.OwnershipTransferred;
+
+      // encode event data - valid event with valid arguments
+      const { mockArgs, mockTopics, data } = createMockEventLogs(
+        validEvent,
+        iface,
+      );
+
+      // update mock transaction event
+      const defaultLog = {};
+      defaultLog.address = validContractAddress;
+      defaultLog.topics = mockTopics;
+      defaultLog.data = data;
+      defaultLog.args = mockArgs;
+      mockTxEvent.logs.push(defaultLog);
+
+      const findings = await handleTransaction(mockTxEvent);
+
+      const ownerInfo = {
+        previousOwner: '0x0000000000000000000000000000000000000000',
+        newOwner: '0x0000000000000000000000000000000000000000',
+        state: 'ownership-transferred',
+      };
+      const expectedFinding = Finding.fromObject({
+        name: `${config.protocolName} Governance Ownership Transferred`,
+        description: `Governance ownership transferred from ${defaultLog.args.previousOwner} to ${defaultLog.args.newOwner}`,
+        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-OWNERSHIP-TRANSFERRED`,
+        type: 'Info',
+        severity: 'High',
+        protocol: config.protocolName,
+        metadata: {
+          address: validContractAddress,
+          ...ownerInfo,
+        },
+      });
+
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns findings if contract address matches and Voting Delay Changed was emitted', async () => {
+      const eventsInAbi = getObjectsFromAbi(abi, 'event');
+      const validEvent = eventsInAbi.VotingDelayChanged;
+
+      // encode event data - valid event with valid arguments
+      const { mockArgs, mockTopics, data } = createMockEventLogs(
+        validEvent,
+        iface,
+      );
+
+      // update mock transaction event
+      const defaultLog = {};
+      defaultLog.address = validContractAddress;
+      defaultLog.topics = mockTopics;
+      defaultLog.data = data;
+      defaultLog.args = mockArgs;
+      mockTxEvent.logs.push(defaultLog);
+
+      const findings = await handleTransaction(mockTxEvent);
+
+      const voteInfo = {
+        newVotingDelay: '0',
+        initiatorChange: '0x0000000000000000000000000000000000000000',
+        state: 'voting-delay-changed',
+      };
+      const expectedFinding = Finding.fromObject({
+        name: `${config.protocolName} Governance Voting Delay Changed`,
+        description: `Voting delay changed to ${defaultLog.args.newVotingDelay} by ${defaultLog.args.initiatorChange}`,
+        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTING-DELAY-CHANGED`,
+        type: 'Info',
+        severity: 'High',
+        protocol: config.protocolName,
+        metadata: {
+          address: validContractAddress,
+          ...voteInfo,
+        },
+      });
+
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
   });
 });

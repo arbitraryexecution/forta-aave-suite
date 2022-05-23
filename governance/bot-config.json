@@ -11,7 +11,12 @@
         "ProposalExecuted",
         "ProposalQueued",
         "ProposalCanceled",
-        "VoteEmitted"
+        "VoteEmitted",
+        "ExecutorAuthorized",
+        "ExecutorUnauthorized",
+        "GovernanceStrategyChanged",
+        "OwnershipTransferred",
+        "VotingDelayChanged"
       ]
     }
   }

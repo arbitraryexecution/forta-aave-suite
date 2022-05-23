@@ -112,6 +112,89 @@ function proposalQueuedFinding(proposalId, address, botState) {
   });
 }
 
+function executorAuthorized(executorInfo, address, botState) {
+  return Finding.fromObject({
+    name: `${botState.protocolName} Governance Executor Authorized`,
+    description: `Authorized executor ${executorInfo.executor}`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-EXECUTOR-AUTHORIZED`,
+    type: 'Info',
+    severity: 'High',
+    protocol: botState.protocolName,
+    metadata: {
+      address,
+      executor: executorInfo.executor,
+      state: 'executor-authorized',
+    },
+  });
+}
+
+function executorUnauthorized(executorInfo, address, botState) {
+  return Finding.fromObject({
+    name: `${botState.protocolName} Governance Executor Unauthorized`,
+    description: `Deauthorized executor ${executorInfo.executor}`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-EXECUTOR-UNAUTHORIZED`,
+    type: 'Info',
+    severity: 'High',
+    protocol: botState.protocolName,
+    metadata: {
+      address,
+      executor: executorInfo.executor,
+      state: 'executor-unauthorized',
+    },
+  });
+}
+
+function governanceStrategyChanged(strategyInfo, address, botState) {
+  return Finding.fromObject({
+    name: `${botState.protocolName} Governance Strategy Changed`,
+    description: `Governance strategy changed to ${strategyInfo.newStrategy} by ${strategyInfo.initiatorChange}`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-STRATEGY-CHANGED`,
+    type: 'Info',
+    severity: 'High',
+    protocol: botState.protocolName,
+    metadata: {
+      address,
+      initiatorChange: strategyInfo.initiatorChange,
+      newStrategy: strategyInfo.newStrategy,
+      state: 'strategy-changed',
+    },
+  });
+}
+
+function ownershipTransferred(ownerInfo, address, botState) {
+  return Finding.fromObject({
+    name: `${botState.protocolName} Governance Ownership Transferred`,
+    description: `Governance ownership transferred from ${ownerInfo.previousOwner} to ${ownerInfo.newOwner}`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-OWNERSHIP-TRANSFERRED`,
+    type: 'Info',
+    severity: 'High',
+    protocol: botState.protocolName,
+    metadata: {
+      address,
+      previousOwner: ownerInfo.previousOwner,
+      newOwner: ownerInfo.newOwner,
+      state: 'ownership-transferred',
+    },
+  });
+}
+
+function votingDelayChanged(voteInfo, address, botState) {
+  return Finding.fromObject({
+    name: `${botState.protocolName} Governance Voting Delay Changed`,
+    description: `Voting delay changed to ${voteInfo.newVotingDelay.toString()} by ${voteInfo.initiatorChange}`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-VOTING-DELAY-CHANGED`,
+    type: 'Info',
+    severity: 'High',
+    protocol: botState.protocolName,
+    metadata: {
+      address,
+      state: 'voting-delay-changed',
+      newVotingDelay: voteInfo.newVotingDelay.toString(),
+      initiatorChange: voteInfo.initiatorChange,
+    },
+  });
+}
+
 function provideInitialize(data) {
   return async function initialize() {
     /* eslint-disable no-param-reassign */
@@ -179,6 +262,16 @@ function provideHandleTransaction(data) {
             return proposalCanceledFinding(log.args.id.toString(), address, data);
           case 'VoteEmitted':
             return voteEmittedFinding(log.args, address, data);
+          case 'ExecutorAuthorized':
+            return executorAuthorized(log.args, address, data);
+          case 'ExecutorUnauthorized':
+            return executorUnauthorized(log.args, address, data);
+          case 'GovernanceStrategyChanged':
+            return governanceStrategyChanged(log.args, address, data);
+          case 'OwnershipTransferred':
+            return ownershipTransferred(log.args, address, data);
+          case 'VotingDelayChanged':
+            return votingDelayChanged(log.args, address, data);
           default:
             return undefined;
         }
