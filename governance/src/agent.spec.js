@@ -1,5 +1,5 @@
 const {
-  Finding, createTransactionEvent, TransactionEvent, ethers, FindingType, FindingSeverity,
+  Finding, createTransactionEvent, TransactionEvent, ethers,
 } = require('forta-agent');
 
 const { provideHandleTransaction, provideInitialize } = require('./agent');
@@ -8,17 +8,11 @@ const { createMockEventLogs, getObjectsFromAbi } = require('./test-utils');
 
 const config = require('../bot-config.json');
 
-const MINIMUM_EVENT_LIST = [
-  'ProposalCreated',
-  'ProposalCanceled',
-  'ProposalExecuted',
-];
-
 /**
  * TransactionEvent(type, network, transaction, traces, addresses, block, logs, contractAddress)
  */
 function createTxEvent({ logs, addresses }) {
-  return new TransactionEvent(null, null, null, [], [], null, logs, addresses);
+  return new TransactionEvent(null, null, null, [], {}, null, logs, addresses);
 }
 
 // check the configuration file to verify the values
@@ -44,29 +38,15 @@ describe('check bot configuration file', () => {
   it('contracts key required', () => {
     const { contracts } = config;
     expect(typeof (contracts)).toBe('object');
-    expect(contracts).not.toBe({});
+    expect(Object.keys(contracts).length).not.toBe(0);
   });
 
   it('contracts key values must be valid', () => {
     const firstContractName = Object.keys(config.contracts)[0];
-    const { abiFile, address } = config.contracts[firstContractName];
+    const { address } = config.contracts[firstContractName];
 
     // check that the address is a valid address
     expect(ethers.utils.isHexString(address, 20)).toBe(true);
-
-    // load the ABI from the specified file
-    // the call to getAbi will fail if the file does not exist
-    const abi = getAbi(abiFile);
-
-    // extract all of the event names from the ABI
-    const events = getObjectsFromAbi(abi, 'event');
-
-    // verify that at least the minimum list of supported events are present
-    MINIMUM_EVENT_LIST.forEach((eventName) => {
-      if (Object.keys(events).indexOf(eventName) === -1) {
-        throw new Error(`ABI does not contain minimum supported event: ${eventName}`);
-      }
-    });
   });
 });
 
@@ -89,8 +69,6 @@ const invalidEvent = {
 };
 // push fake event to abi before creating the interface
 abi.push(invalidEvent);
-const iface = new ethers.utils.Interface(abi);
-
 
 // tests
 describe('monitor governance contracts for emitted events', () => {
@@ -100,11 +78,9 @@ describe('monitor governance contracts for emitted events', () => {
     let mockTxEvent;
 
     // constants
-    const mockContractName = 'mockContractName';
     const mockContractAddress = ethers.utils.hexZeroPad('0x1', 20);
-    const mockEventSignature = 'event mockEvent()';
     const iface = new ethers.utils.Interface(abi);
-
+    let validContractAddress = '';
 
     // logs data for test case: address match + no topic match
     const logsNoMatchEvent = [
@@ -137,7 +113,6 @@ describe('monitor governance contracts for emitted events', () => {
 
       validContractAddress = firstContract.address;
 
-
       // initialize mock transaction event with default values
       mockTxEvent = createTransactionEvent({
         receipt: {
@@ -159,7 +134,6 @@ describe('monitor governance contracts for emitted events', () => {
       // build txEvent
       const txEvent = createTxEvent({
         logs: logsNoMatchAddress,
-        addresses: { [ethers.constants.AddressZero]: true },
       });
 
       // run bot
@@ -173,7 +147,6 @@ describe('monitor governance contracts for emitted events', () => {
       // build tx event
       const txEvent = createTxEvent({
         logs: logsNoMatchEvent,
-        addresses: { [mockContractAddress]: true },
       });
 
       // run bot
@@ -185,25 +158,19 @@ describe('monitor governance contracts for emitted events', () => {
 
     it('returns findings if contract address matches and ProposalCreated was emitted', async () => {
       const eventsInAbi = getObjectsFromAbi(abi, 'event');
-      const validEvent = eventsInAbi['ProposalCreated'];
+      const validEvent = eventsInAbi.ProposalCreated;
 
       // encode event data - valid event with valid arguments
-      const { mockArgs, mockTopics, data } = createMockEventLogs(
+      const { mockTopics, data } = createMockEventLogs(
         validEvent,
         iface,
       );
 
       // update mock transaction event
-      let defaultLog = {};
-      defaultLog.name = mockContractName;
+      const defaultLog = {};
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(validEvent.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -235,32 +202,26 @@ describe('monitor governance contracts for emitted events', () => {
 
     it('returns findings if contract address matches and ProposalCanceled was emitted', async () => {
       const eventsInAbi = getObjectsFromAbi(abi, 'event');
-      const validEvent = eventsInAbi['ProposalCanceled'];
+      const validEvent = eventsInAbi.ProposalCanceled;
 
       // encode event data - valid event with valid arguments
-      const { mockArgs, mockTopics, data } = createMockEventLogs(
+      const { mockTopics, data } = createMockEventLogs(
         validEvent,
         iface,
       );
 
       // update mock transaction event
-      let defaultLog = {};
-      defaultLog.name = mockContractName;
+      const defaultLog = {};
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(validEvent.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
 
       const proposal = {
         id: '0',
-        state: 'canceled'
+        state: 'canceled',
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Proposal Canceled`,
@@ -280,32 +241,26 @@ describe('monitor governance contracts for emitted events', () => {
 
     it('returns findings if contract address matches and ProposalQueued was emitted', async () => {
       const eventsInAbi = getObjectsFromAbi(abi, 'event');
-      const validEvent = eventsInAbi['ProposalQueued'];
+      const validEvent = eventsInAbi.ProposalQueued;
 
       // encode event data - valid event with valid arguments
-      const { mockArgs, mockTopics, data } = createMockEventLogs(
+      const { mockTopics, data } = createMockEventLogs(
         validEvent,
         iface,
       );
 
       // update mock transaction event
-      let defaultLog = {};
-      defaultLog.name = mockContractName;
+      const defaultLog = {};
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(validEvent.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
 
       const proposal = {
         id: '0',
-        state: 'queued'
+        state: 'queued',
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Proposal Queued`,
@@ -325,32 +280,26 @@ describe('monitor governance contracts for emitted events', () => {
 
     it('returns findings if contract address matches and ProposalExecuted was emitted', async () => {
       const eventsInAbi = getObjectsFromAbi(abi, 'event');
-      const validEvent = eventsInAbi['ProposalExecuted'];
+      const validEvent = eventsInAbi.ProposalExecuted;
 
       // encode event data - valid event with valid arguments
-      const { mockArgs, mockTopics, data } = createMockEventLogs(
+      const { mockTopics, data } = createMockEventLogs(
         validEvent,
         iface,
       );
 
       // update mock transaction event
-      let defaultLog = {};
-      defaultLog.name = mockContractName;
+      const defaultLog = {};
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(validEvent.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
 
       const proposal = {
         id: '0',
-        state: 'executed'
+        state: 'executed',
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Proposal Executed`,
@@ -370,25 +319,19 @@ describe('monitor governance contracts for emitted events', () => {
 
     it('returns findings if contract address matches and VoteEmitted was emitted', async () => {
       const eventsInAbi = getObjectsFromAbi(abi, 'event');
-      const validEvent = eventsInAbi['VoteEmitted'];
+      const validEvent = eventsInAbi.VoteEmitted;
 
       // encode event data - valid event with valid arguments
-      const { mockArgs, mockTopics, data } = createMockEventLogs(
+      const { mockTopics, data } = createMockEventLogs(
         validEvent,
         iface,
       );
 
       // update mock transaction event
-      let defaultLog = {};
-      defaultLog.name = mockContractName;
+      const defaultLog = {};
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
-      defaultLog.args = mockArgs;
       defaultLog.data = data;
-      defaultLog.signature = iface
-        .getEvent(validEvent.name)
-        .format(ethers.utils.FormatTypes.minimal)
-        .substring(6);
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);

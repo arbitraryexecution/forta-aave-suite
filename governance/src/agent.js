@@ -1,5 +1,5 @@
 const {
-  Finding, FindingSeverity, FindingType, ethers,
+  Finding, ethers,
 } = require('forta-agent');
 
 const { getAbi, getEventSignatures } = require('./utils');
@@ -15,9 +15,6 @@ function createProposalFromLog(log) {
     id: log.args.id.toString(),
     creator: log.args.creator,
     targets: log.args.targets.join(','),
-    // the 'values' key has to be parsed differently because `values` is a named method on Objects
-    // in JavaScript.  Also, this is why the key is prefixed with an underscore, to avoid
-    // overwriting the `values` method.
     signatures: log.args.signatures.join(','),
     calldatas: log.args.calldatas.join(','),
     startBlock: log.args.startBlock.toString(),
@@ -27,14 +24,14 @@ function createProposalFromLog(log) {
 }
 
 // alert for when a new governance proposal is created
-function proposalCreatedFinding(proposal, address, config) {
+function proposalCreatedFinding(proposal, address, botState) {
   return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Created`,
+    name: `${botState.protocolName} Governance Proposal Created`,
     description: `Governance Proposal ${proposal.id} was just created`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-CREATED`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-PROPOSAL-CREATED`,
     type: 'Info',
     severity: 'Info',
-    protocol: config.protocolName,
+    protocol: botState.protocolName,
     metadata: {
       address,
       ...proposal,
@@ -42,22 +39,22 @@ function proposalCreatedFinding(proposal, address, config) {
   });
 }
 
-function voteEmittedFinding(voteInfo, address, config) {
+function voteEmittedFinding(voteInfo, address, botState) {
   let description = `Vote emitted with weight ${voteInfo.votingPower.toString()}`;
   if (voteInfo.support) {
-      description += ' in support of';
+    description += ' in support of';
   } else {
-      description += ' against';
+    description += ' against';
   }
   description += ` proposal ${voteInfo.id}`;
 
   return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Vote Emitted`,
+    name: `${botState.protocolName} Governance Proposal Vote Emitted`,
     description,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTE-EMITTED`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-VOTE-EMITTED`,
     type: 'Info',
     severity: 'Info',
-    protocol: config.protocolName,
+    protocol: botState.protocolName,
     metadata: {
       id: voteInfo.id.toString(),
       address,
@@ -67,14 +64,14 @@ function voteEmittedFinding(voteInfo, address, config) {
   });
 }
 
-function proposalCanceledFinding(proposalId, address, config) {
+function proposalCanceledFinding(proposalId, address, botState) {
   return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Canceled`,
+    name: `${botState.protocolName} Governance Proposal Canceled`,
     description: `Governance proposal ${proposalId} has been canceled`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-CANCELED`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-PROPOSAL-CANCELED`,
     type: 'Info',
     severity: 'Info',
-    protocol: config.protocolName,
+    protocol: botState.protocolName,
     metadata: {
       address,
       id: proposalId,
@@ -83,14 +80,14 @@ function proposalCanceledFinding(proposalId, address, config) {
   });
 }
 
-function proposalExecutedFinding(proposalId, address, config) {
+function proposalExecutedFinding(proposalId, address, botState) {
   return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Executed`,
+    name: `${botState.protocolName} Governance Proposal Executed`,
     description: `Governance proposal ${proposalId} has been executed`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-EXECUTED`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-PROPOSAL-EXECUTED`,
     type: 'Info',
     severity: 'Info',
-    protocol: config.protocolName,
+    protocol: botState.protocolName,
     metadata: {
       address,
       id: proposalId,
@@ -99,14 +96,14 @@ function proposalExecutedFinding(proposalId, address, config) {
   });
 }
 
-function proposalQueuedFinding(proposalId, address, config, eta) {
+function proposalQueuedFinding(proposalId, address, botState) {
   return Finding.fromObject({
-    name: `${config.protocolName} Governance Proposal Queued`,
+    name: `${botState.protocolName} Governance Proposal Queued`,
     description: `Governance proposal ${proposalId} has been queued`,
-    alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-QUEUED`,
+    alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-PROPOSAL-QUEUED`,
     type: 'Info',
     severity: 'Info',
-    protocol: config.protocolName,
+    protocol: botState.protocolName,
     metadata: {
       address,
       id: proposalId,
@@ -162,13 +159,14 @@ function provideHandleTransaction(data) {
       // iterate over all logs to determine what governance actions were taken
       let results = logs.map((log) => {
         switch (log.name) {
-          case 'ProposalCreated':
+          case 'ProposalCreated': {
             const proposal = createProposalFromLog(log);
             return proposalCreatedFinding(
               proposal,
               address,
               data,
             );
+          }
           case 'ProposalExecuted':
             return proposalExecutedFinding(log.args.id.toString(), address, data);
           case 'ProposalQueued':
