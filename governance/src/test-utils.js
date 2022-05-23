@@ -13,7 +13,7 @@ const defaultTypeMap = {
   string: 'test',
   'string[]': ['test'],
   'bool[]': [true],
-  'bool': true,
+  bool: true,
 };
 
 function getObjectsFromAbi(abi, objectType) {
@@ -32,7 +32,6 @@ function createMockEventLogs(eventObject, iface, override = undefined) {
   const eventTypes = [];
   const defaultData = [];
   const abiCoder = ethers.utils.defaultAbiCoder;
-
 
   // push the topic hash of the event to mockTopics - this is the first item in a topics array
   const fragment = iface.getEvent(eventObject.name);
@@ -75,7 +74,6 @@ function createMockEventLogs(eventObject, iface, override = undefined) {
       mockArgs[entry.name] = value;
     }
   });
-
 
   // encode the data array given the types array
   const data = abiCoder.encode(eventTypes, defaultData);
