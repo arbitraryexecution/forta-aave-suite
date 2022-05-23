@@ -322,7 +322,7 @@ describe('monitor governance contracts for emitted events', () => {
       const validEvent = eventsInAbi.VoteEmitted;
 
       // encode event data - valid event with valid arguments
-      const { mockTopics, data } = createMockEventLogs(
+      const { mockArgs, mockTopics, data } = createMockEventLogs(
         validEvent,
         iface,
       );
@@ -332,6 +332,7 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
+      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
