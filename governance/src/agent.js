@@ -133,7 +133,7 @@ function executorUnauthorized(executorInfo, address, botState) {
     name: `${botState.protocolName} Governance Executor Unauthorized`,
     description: `Deauthorized executor ${executorInfo.executor}`,
     alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-EXECUTOR-UNAUTHORIZED`,
-    type: 'Info',
+    type: 'Suspicious',
     severity: 'High',
     protocol: botState.protocolName,
     metadata: {
@@ -150,7 +150,7 @@ function governanceStrategyChanged(strategyInfo, address, botState) {
     description: `Governance strategy changed to ${strategyInfo.newStrategy} by ${strategyInfo.initiatorChange}`,
     alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-STRATEGY-CHANGED`,
     type: 'Info',
-    severity: 'High',
+    severity: 'Info',
     protocol: botState.protocolName,
     metadata: {
       address,
@@ -166,7 +166,7 @@ function ownershipTransferred(ownerInfo, address, botState) {
     name: `${botState.protocolName} Governance Ownership Transferred`,
     description: `Governance ownership transferred from ${ownerInfo.previousOwner} to ${ownerInfo.newOwner}`,
     alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-OWNERSHIP-TRANSFERRED`,
-    type: 'Info',
+    type: 'Suspicious',
     severity: 'High',
     protocol: botState.protocolName,
     metadata: {
@@ -184,7 +184,7 @@ function votingDelayChanged(voteInfo, address, botState) {
     description: `Voting delay changed to ${voteInfo.newVotingDelay.toString()} by ${voteInfo.initiatorChange}`,
     alertId: `${botState.developerAbbreviation}-${botState.protocolAbbreviation}-VOTING-DELAY-CHANGED`,
     type: 'Info',
-    severity: 'High',
+    severity: 'Info',
     protocol: botState.protocolName,
     metadata: {
       address,
@@ -224,6 +224,7 @@ function provideInitialize(data) {
       };
 
       contract.eventSignatures = getEventSignatures(contract, entry.events);
+
       return contract;
     });
 

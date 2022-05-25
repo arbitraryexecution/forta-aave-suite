@@ -200,45 +200,6 @@ describe('monitor governance contracts for emitted events', () => {
       expect(findings).toStrictEqual([expectedFinding]);
     });
 
-    it('returns findings if contract address matches and ProposalCanceled was emitted', async () => {
-      const eventsInAbi = getObjectsFromAbi(abi, 'event');
-      const validEvent = eventsInAbi.ProposalCanceled;
-
-      // encode event data - valid event with valid arguments
-      const { mockTopics, data } = createMockEventLogs(
-        validEvent,
-        iface,
-      );
-
-      // update mock transaction event
-      const defaultLog = {};
-      defaultLog.address = validContractAddress;
-      defaultLog.topics = mockTopics;
-      defaultLog.data = data;
-      mockTxEvent.logs.push(defaultLog);
-
-      const findings = await handleTransaction(mockTxEvent);
-
-      const proposal = {
-        id: '0',
-        state: 'canceled',
-      };
-      const expectedFinding = Finding.fromObject({
-        name: `${config.protocolName} Governance Proposal Canceled`,
-        description: `Governance proposal ${proposal.id} has been canceled`,
-        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-CANCELED`,
-        type: 'Info',
-        severity: 'Info',
-        protocol: config.protocolName,
-        metadata: {
-          address: validContractAddress,
-          ...proposal,
-        },
-      });
-
-      expect(findings).toStrictEqual([expectedFinding]);
-    });
-
     it('returns findings if contract address matches and ProposalQueued was emitted', async () => {
       const eventsInAbi = getObjectsFromAbi(abi, 'event');
       const validEvent = eventsInAbi.ProposalQueued;
@@ -305,6 +266,45 @@ describe('monitor governance contracts for emitted events', () => {
         name: `${config.protocolName} Governance Proposal Executed`,
         description: `Governance proposal ${proposal.id} has been executed`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-EXECUTED`,
+        type: 'Info',
+        severity: 'Info',
+        protocol: config.protocolName,
+        metadata: {
+          address: validContractAddress,
+          ...proposal,
+        },
+      });
+
+      expect(findings).toStrictEqual([expectedFinding]);
+    });
+
+    it('returns findings if contract address matches and ProposalCanceled was emitted', async () => {
+      const eventsInAbi = getObjectsFromAbi(abi, 'event');
+      const validEvent = eventsInAbi.ProposalCanceled;
+
+      // encode event data - valid event with valid arguments
+      const { mockTopics, data } = createMockEventLogs(
+        validEvent,
+        iface,
+      );
+
+      // update mock transaction event
+      const defaultLog = {};
+      defaultLog.address = validContractAddress;
+      defaultLog.topics = mockTopics;
+      defaultLog.data = data;
+      mockTxEvent.logs.push(defaultLog);
+
+      const findings = await handleTransaction(mockTxEvent);
+
+      const proposal = {
+        id: '0',
+        state: 'canceled',
+      };
+      const expectedFinding = Finding.fromObject({
+        name: `${config.protocolName} Governance Proposal Canceled`,
+        description: `Governance proposal ${proposal.id} has been canceled`,
+        alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-PROPOSAL-CANCELED`,
         type: 'Info',
         severity: 'Info',
         protocol: config.protocolName,
@@ -426,7 +426,7 @@ describe('monitor governance contracts for emitted events', () => {
         name: `${config.protocolName} Governance Executor Unauthorized`,
         description: `Deauthorized executor ${defaultLog.args.executor}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-EXECUTOR-UNAUTHORIZED`,
-        type: 'Info',
+        type: 'Suspicious',
         severity: 'High',
         protocol: config.protocolName,
         metadata: {
@@ -468,7 +468,7 @@ describe('monitor governance contracts for emitted events', () => {
         description: `Governance strategy changed to ${defaultLog.args.newStrategy} by ${defaultLog.args.initiatorChange}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-STRATEGY-CHANGED`,
         type: 'Info',
-        severity: 'High',
+        severity: 'Info',
         protocol: config.protocolName,
         metadata: {
           address: validContractAddress,
@@ -508,7 +508,7 @@ describe('monitor governance contracts for emitted events', () => {
         name: `${config.protocolName} Governance Ownership Transferred`,
         description: `Governance ownership transferred from ${defaultLog.args.previousOwner} to ${defaultLog.args.newOwner}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-OWNERSHIP-TRANSFERRED`,
-        type: 'Info',
+        type: 'Suspicious',
         severity: 'High',
         protocol: config.protocolName,
         metadata: {
@@ -550,7 +550,7 @@ describe('monitor governance contracts for emitted events', () => {
         description: `Voting delay changed to ${defaultLog.args.newVotingDelay} by ${defaultLog.args.initiatorChange}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTING-DELAY-CHANGED`,
         type: 'Info',
-        severity: 'High',
+        severity: 'Info',
         protocol: config.protocolName,
         metadata: {
           address: validContractAddress,
