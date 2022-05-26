@@ -1,5 +1,5 @@
 const {
-  Finding, createTransactionEvent, TransactionEvent, ethers,
+  Finding, TransactionEvent, ethers,
 } = require('forta-agent');
 
 const { provideHandleTransaction, provideInitialize } = require('./agent');
@@ -38,7 +38,7 @@ describe('check bot configuration file', () => {
   it('contracts key required', () => {
     const { contracts } = config;
     expect(typeof (contracts)).toBe('object');
-    expect(Object.keys(contracts).length).not.toBe(0);
+    expect(Object.keys(contracts).length).toBe(1);
   });
 
   it('contracts key values must be valid', () => {
@@ -50,8 +50,7 @@ describe('check bot configuration file', () => {
   });
 });
 
-const firstContractName = Object.keys(config.contracts)[0];
-const firstContract = config.contracts[firstContractName];
+const [[, firstContract]] = Object.entries(config.contracts);
 const abi = getAbi(firstContract.abiFile);
 
 const invalidEvent = {
@@ -114,30 +113,15 @@ describe('monitor governance contracts for emitted events', () => {
       validContractAddress = firstContract.address;
 
       // initialize mock transaction event with default values
-      mockTxEvent = createTransactionEvent({
-        receipt: {
-          logs: [
-            {
-              name: '',
-              address: '',
-              signature: '',
-              topics: [],
-              data: `0x${'0'.repeat(1000)}`,
-              args: [],
-            },
-          ],
-        },
-      });
+      mockTxEvent = createTxEvent({ logs: [], addresses: {} });
     });
 
     it('returns empty findings if contract address does not match', async () => {
       // build txEvent
-      const txEvent = createTxEvent({
-        logs: logsNoMatchAddress,
-      });
+      mockTxEvent.logs = logsNoMatchAddress;
 
       // run bot
-      const findings = await handleTransaction(txEvent);
+      const findings = await handleTransaction(mockTxEvent);
 
       // assertions
       expect(findings).toStrictEqual([]);
@@ -145,12 +129,10 @@ describe('monitor governance contracts for emitted events', () => {
 
     it('returns empty findings if contract address matches but not event', async () => {
       // build tx event
-      const txEvent = createTxEvent({
-        logs: logsNoMatchEvent,
-      });
+      mockTxEvent.logs = logsNoMatchEvent;
 
       // run bot
-      const findings = await handleTransaction(txEvent);
+      const findings = await handleTransaction(mockTxEvent);
 
       // assertions
       expect(findings).toStrictEqual([]);
@@ -332,7 +314,6 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
-      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -344,7 +325,7 @@ describe('monitor governance contracts for emitted events', () => {
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Proposal Vote Emitted`,
-        description: `Vote emitted with weight ${defaultLog.args.votingPower} in support of proposal ${defaultLog.args.id}`,
+        description: `Vote emitted with weight ${mockArgs.votingPower} in support of proposal ${mockArgs.id}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTE-EMITTED`,
         type: 'Info',
         severity: 'Info',
@@ -373,7 +354,6 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
-      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -384,7 +364,7 @@ describe('monitor governance contracts for emitted events', () => {
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Executor Authorized`,
-        description: `Authorized executor ${defaultLog.args.executor}`,
+        description: `Authorized executor ${mockArgs.executor}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-EXECUTOR-AUTHORIZED`,
         type: 'Info',
         severity: 'High',
@@ -413,7 +393,6 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
-      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -424,7 +403,7 @@ describe('monitor governance contracts for emitted events', () => {
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Executor Unauthorized`,
-        description: `Deauthorized executor ${defaultLog.args.executor}`,
+        description: `Deauthorized executor ${mockArgs.executor}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-EXECUTOR-UNAUTHORIZED`,
         type: 'Suspicious',
         severity: 'High',
@@ -453,7 +432,6 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
-      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -465,7 +443,7 @@ describe('monitor governance contracts for emitted events', () => {
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Strategy Changed`,
-        description: `Governance strategy changed to ${defaultLog.args.newStrategy} by ${defaultLog.args.initiatorChange}`,
+        description: `Governance strategy changed to ${mockArgs.newStrategy} by ${mockArgs.initiatorChange}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-STRATEGY-CHANGED`,
         type: 'Info',
         severity: 'Info',
@@ -494,7 +472,6 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
-      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -506,7 +483,7 @@ describe('monitor governance contracts for emitted events', () => {
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Ownership Transferred`,
-        description: `Governance ownership transferred from ${defaultLog.args.previousOwner} to ${defaultLog.args.newOwner}`,
+        description: `Governance ownership transferred from ${mockArgs.previousOwner} to ${mockArgs.newOwner}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-OWNERSHIP-TRANSFERRED`,
         type: 'Suspicious',
         severity: 'High',
@@ -535,7 +512,6 @@ describe('monitor governance contracts for emitted events', () => {
       defaultLog.address = validContractAddress;
       defaultLog.topics = mockTopics;
       defaultLog.data = data;
-      defaultLog.args = mockArgs;
       mockTxEvent.logs.push(defaultLog);
 
       const findings = await handleTransaction(mockTxEvent);
@@ -547,7 +523,7 @@ describe('monitor governance contracts for emitted events', () => {
       };
       const expectedFinding = Finding.fromObject({
         name: `${config.protocolName} Governance Voting Delay Changed`,
-        description: `Voting delay changed to ${defaultLog.args.newVotingDelay} by ${defaultLog.args.initiatorChange}`,
+        description: `Voting delay changed to ${mockArgs.newVotingDelay} by ${mockArgs.initiatorChange}`,
         alertId: `${config.developerAbbreviation}-${config.protocolAbbreviation}-VOTING-DELAY-CHANGED`,
         type: 'Info',
         severity: 'Info',
