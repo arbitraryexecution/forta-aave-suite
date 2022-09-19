@@ -2,6 +2,7 @@
   "name": "forta-aave-governance",
   "version": "0.0.1",
   "description": "Bot that monitors transactions for Aave governance events",
+  "chainIds": [1],
   "scripts": {
     "start": "npm run start:dev",
     "start:dev": "nodemon --watch src --watch forta.config.json -e js,json --exec 'forta-agent run'",
